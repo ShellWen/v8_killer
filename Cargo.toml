@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "crates/core",
+    "crates/launcher",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["ShellWen <me@shellwen.com>"]

@@ -1,0 +1,13 @@
+[package]
+name = "v8_killer_core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+frida-gum = { version = "0.13.2", features = ["auto-download", "invocation-listener"] }
+lazy_static = "1.4.0"
+ctor = "0.2.4"

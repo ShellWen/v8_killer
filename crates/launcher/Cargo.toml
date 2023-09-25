@@ -1,0 +1,10 @@
+[package]
+name = "v8_killer_launcher"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+build = "build.rs"
+
+[dependencies]
+tempfile = "3.8.0"
