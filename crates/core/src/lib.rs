@@ -4,10 +4,12 @@ use ctor::ctor;
 use frida_gum::{Gum, interceptor::Interceptor, Module};
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
 use lazy_static::lazy_static;
+use crate::platform::V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL;
 
 use crate::utils::{context_get_isolate, patch_source_if_needed, Source};
 
 mod utils;
+mod platform;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
@@ -33,8 +35,15 @@ struct V8ScriptCompilerCompileFunctionInternalListener;
 impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
     fn on_enter(&mut self, frida_context: InvocationContext) {
         unsafe {
+            #[cfg(target_os = "linux")]
             let context = frida_context.arg(0) as *const c_void;
+            #[cfg(target_os = "linux")]
             let source = (frida_context.arg(1) as *mut Source).as_mut().unwrap();
+            #[cfg(target_os = "windows")]
+            let context = frida_context.arg(1) as *const c_void;
+            #[cfg(target_os = "windows")]
+            let source = (frida_context.arg(2) as *mut Source).as_mut().unwrap();
+
             let isolate = context_get_isolate(context);
             patch_source_if_needed(isolate, source);
         }
@@ -61,7 +70,7 @@ fn init() {
     //     }
     // }
 
-    let v8_script_compiler_compile_function_internal = Module::find_export_by_name(None, "_ZN2v814ScriptCompiler23CompileFunctionInternalENS_5LocalINS_7ContextEEEPNS0_6SourceEmPNS1_INS_6StringEEEmPNS1_INS_6ObjectEEENS0_14CompileOptionsENS0_13NoCacheReasonEPNS1_INS_14ScriptOrModuleEEE");
+    let v8_script_compiler_compile_function_internal = Module::find_export_by_name(None, V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL);
 
     match v8_script_compiler_compile_function_internal {
         None => {

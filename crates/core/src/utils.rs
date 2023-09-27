@@ -5,11 +5,16 @@ use std::ffi::{c_char, c_int, c_void};
 
 use frida_gum::Module;
 
+use crate::platform::{V8_CONTEXT_GET_ISOLATE_SYMBOL, V8_STRING_NEW_FROM_UTF8_PTR, V8_STRING_UTF8LENGTH_SYMBOL, V8_STRING_WRITE_UTF8_SYMBOL};
+
 pub type v8__Context__GetIsolate = unsafe extern "C" fn(context: *const c_void) -> *const c_void;
 pub type v8__String__Utf8Length = unsafe extern "C" fn(this: *const c_void, isolate: *const c_void) -> usize;
 pub type v8__String__WriteUtf8 = unsafe extern "C" fn(this: *const c_void, isolate: *const c_void, buffer: *mut c_char, length: c_int, nchars_ref: *mut usize, options: c_int) -> c_int;
+#[cfg(target_os = "linux")]
 pub type v8__String__NewFromUtf8 = unsafe extern "C" fn(isolate: *const c_void, data: *const c_char, new_type: i32, length: i32) -> *const c_void;
 // pub type v8__String__NewFromUtf8 = unsafe extern "C" fn(isolate: *const c_void, data: *const c_char) -> *const c_void;
+#[cfg(target_os = "windows")]
+pub type v8__String__NewFromUtf8 = unsafe extern "C" fn(arg0: *const *mut c_void, isolate: *const c_void, data: *const c_char, new_type: i32, length: i32) -> *const c_void;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -36,9 +41,9 @@ pub unsafe fn char_vec_to_string(v: &Vec<c_char>) -> String {
 }
 
 pub unsafe fn string_from_local_string(isolate: *const c_void, local_string: *const c_void) -> String {
-    let v8__String__Utf8Length_ptr = Module::find_export_by_name(None, "_ZNK2v86String10Utf8LengthEPNS_7IsolateE").unwrap();
+    let v8__String__Utf8Length_ptr = Module::find_export_by_name(None, V8_STRING_UTF8LENGTH_SYMBOL).unwrap();
     let v8__String__Utf8Length_func: v8__String__Utf8Length = std::mem::transmute(v8__String__Utf8Length_ptr.0);
-    let v8__String__WriteUtf8_ptr = Module::find_export_by_name(None, "_ZNK2v86String9WriteUtf8EPNS_7IsolateEPciPii").unwrap();
+    let v8__String__WriteUtf8_ptr = Module::find_export_by_name(None, V8_STRING_WRITE_UTF8_SYMBOL).unwrap();
     let v8__String__WriteUtf8_func: v8__String__WriteUtf8 = std::mem::transmute(v8__String__WriteUtf8_ptr.0);
 
     let length = v8__String__Utf8Length_func(local_string, isolate);
@@ -50,18 +55,30 @@ pub unsafe fn string_from_local_string(isolate: *const c_void, local_string: *co
 }
 
 pub unsafe fn context_get_isolate(context: *const c_void) -> *const c_void {
-    let v8__Context__GetIsolate_ptr = Module::find_export_by_name(None, "_ZN2v87Context10GetIsolateEv").unwrap();
+    let v8__Context__GetIsolate_ptr = Module::find_export_by_name(None, V8_CONTEXT_GET_ISOLATE_SYMBOL).unwrap();
     let v8__Context__GetIsolate_func: v8__Context__GetIsolate = std::mem::transmute(v8__Context__GetIsolate_ptr.0);
 
     v8__Context__GetIsolate_func(context)
 }
 
 pub unsafe fn local_string_from_string(isolate: *const c_void, string: String) -> *const c_void {
-    let v8__String__NewFromUtf8_ptr = Module::find_export_by_name(None, "_ZN2v86String11NewFromUtf8EPNS_7IsolateEPKcNS_13NewStringTypeEi").unwrap();
+    let v8__String__NewFromUtf8_ptr = Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_PTR).unwrap();
     let v8__String__NewFromUtf8_func: v8__String__NewFromUtf8 = std::mem::transmute(v8__String__NewFromUtf8_ptr.0);
 
     let s_ptr = cstr_from_string(string);
-    v8__String__NewFromUtf8_func(isolate, s_ptr, 0, -1)
+    #[cfg(target_os = "linux")]
+    {
+        v8__String__NewFromUtf8_func(isolate, s_ptr, 0, -1)
+    }
+    #[cfg(target_os = "windows")]
+    {
+        use std::ptr::null_mut;
+
+        let mut arg0_value: *mut c_void = null_mut();
+        let arg0: *const *mut c_void = &mut arg0_value;
+        v8__String__NewFromUtf8_func(arg0, isolate, s_ptr, 0, -1);
+        arg0_value
+    }
 }
 
 pub fn is_resource_should_patch(resource_name: &str, inject_script_path: &str) -> bool {
@@ -104,7 +121,8 @@ pub unsafe fn patch_source_if_needed(isolate: *const c_void, source: &mut Source
             println!("[*] patching source for {}", r);
             let source_string = string_from_local_string(isolate, source._source_string);
             let patched = patch_script(&source_string, &inject_script_path);
-            source._source_string = local_string_from_string(isolate, patched.to_string());
+            let patched_local_string = local_string_from_string(isolate, patched.to_string());
+            source._source_string = patched_local_string;
             true
         }
         _ => false

@@ -83,7 +83,7 @@ This project began with an initial idea: injecting scripts into Electron applica
 
 This project takes a different approach by hooking into the compilation functions of the V8 engine, directly modifying the source code passed to the V8 compiler. This allows scripts to be injected into the V8 engine without altering any local files or opening any debugging ports. Through testing, it has been confirmed that this method can be used with any software/framework built on the V8 engine, including but not limited to Node.js, Electron, and Deno.
 
-Currently, this project has been tested exclusively on Linux, and Windows support is WIP. In theory, with minor modifications, it should be possible to run it on macOS. However, this is not currently part of our development roadmap.
+Currently, this project has been tested exclusively on Linux and Windows. In theory, with minor modifications, it should be possible to run it on macOS. However, this is not currently part of our development roadmap.
 
 This project is divided into two parts: `core` and `launcher`. The `core` constitutes the central component and represents the actual injected payload. The `launcher` is responsible for loading the payload, which is the `core`, into the target program.
 
