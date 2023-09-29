@@ -1,0 +1,16 @@
+#:schema ../../assets/config.schema.json
+
+[rules.hook_console_log]
+matcher = { type = "resource-name-keyword", keyword = "hello_world.js" }
+
+processors = [
+    { type = "insert-before", content = """\
+    const originalConsoleLog = console.log
+    console.log = function () {
+      originalConsoleLog('now you see :)')
+      return originalConsoleLog.apply(this, arguments)
+    }""" },
+    { type = "insert-after", content = """\
+    console.log = originalConsoleLog
+    """ }
+]

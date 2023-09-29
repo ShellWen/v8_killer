@@ -11,3 +11,5 @@ crate-type = ["cdylib"]
 frida-gum = { version = "0.13.2", features = ["auto-download", "invocation-listener"] }
 lazy_static = "1.4.0"
 ctor = "0.2.4"
+toml = "0.8.1"
+serde = { version = "1.0.188", features = ["derive"] }
