@@ -97,7 +97,6 @@ So far, we support the following targets:
 | Electron | Yes       |                                                                                                            |
 | CEF      | Untested  |                                                                                                            |
 | Deno     | No        | Deno remove exports from V8. In future versions, we will introduce pattern matching to address this issue. |
-| Bun      | No        | Bun remove exports from V8. In future versions, we will introduce pattern matching to address this issue.  |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
