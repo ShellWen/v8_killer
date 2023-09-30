@@ -1,5 +1,3 @@
-#:schema ../../assets/config.schema.json
-
 [rules.hook_console_log]
 matcher = { type = "resource-name-keyword", keyword = "hello_world.js" }
 
