@@ -46,6 +46,8 @@ type v8__String__WriteUtf8 = unsafe extern "C" fn(this: *const V8String, isolate
 type v8__String__NewFromUtf8 = unsafe extern "C" fn(isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String>;
 #[cfg(target_os = "windows")]
 type v8__String__NewFromUtf8 = unsafe extern "C" fn(arg0: *const *mut c_void, isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String>;
+#[cfg(target_os = "macos")]
+type v8__String__NewFromUtf8 = unsafe extern "C" fn(isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String>;
 
 pub(crate) unsafe fn v8_context_get_isolate(context: *const V8Context) -> *const V8Isolate {
     let v8_context_get_isolate_ptr = Module::find_export_by_name(None, V8_CONTEXT_GET_ISOLATE_SYMBOL).unwrap();
@@ -84,6 +86,10 @@ pub(crate) unsafe fn v8_string_new_from_utf8(isolate: *const V8Isolate, data: *c
         let arg0: *const *mut c_void = &mut arg0_value;
         v8_string_new_from_utf8_func(arg0, isolate, data, new_type, length);
         arg0_value
+    }
+    #[cfg(target_os = "macos")]
+    {
+        v8_string_new_from_utf8_func(isolate, data, new_type, length)
     }
 }
 
