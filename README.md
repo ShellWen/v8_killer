@@ -89,6 +89,16 @@ This project is divided into two parts: `core` and `launcher`. The `core` consti
 
 On Linux, loading the payload can be accomplished simply using `LD_PRELOAD`. However, on Windows, this might require additional work, and this is where the purpose of the launcher comes into play.
 
+So far, we support the following targets:
+
+| Target   | Supported | Note                                                                                                       |
+|----------|-----------|------------------------------------------------------------------------------------------------------------|
+| Node.js  | Yes       |                                                                                                            |
+| Electron | Yes       |                                                                                                            |
+| CEF      | Untested  |                                                                                                            |
+| Deno     | No        | Deno remove exports from V8. In future versions, we will introduce pattern matching to address this issue. |
+| Bun      | No        | Bun remove exports from V8. In future versions, we will introduce pattern matching to address this issue.  |
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
