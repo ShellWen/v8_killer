@@ -30,18 +30,14 @@ struct V8ScriptCompilerCompileFunctionInternalListener;
 impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
     fn on_enter(&mut self, frida_context: InvocationContext) {
         unsafe {
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
                 let context = frida_context.arg(0) as *const V8Context;
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
                 let source = frida_context.arg(1) as *mut V8Source;
             #[cfg(target_os = "windows")]
                 let context = frida_context.arg(1) as *const V8Context;
             #[cfg(target_os = "windows")]
                 let source = frida_context.arg(2) as *mut V8Source;
-            #[cfg(target_os = "macos")]
-                let context = frida_context.arg(0) as *const V8Context;
-            #[cfg(target_os = "macos")]
-                let source = frida_context.arg(1) as *mut V8Source;
             let config = CONFIG.as_ref().unwrap();
             process_script(config, context, source);
         }

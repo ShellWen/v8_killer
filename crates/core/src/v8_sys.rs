@@ -74,7 +74,7 @@ pub(crate) unsafe fn v8_string_new_from_utf8(isolate: *const V8Isolate, data: *c
     let v8_string_new_from_utf8_ptr = Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_PTR).unwrap();
     let v8_string_new_from_utf8_func: v8__String__NewFromUtf8 = std::mem::transmute(v8_string_new_from_utf8_ptr.0);
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
         v8_string_new_from_utf8_func(isolate, data, new_type, length)
     }
@@ -86,10 +86,6 @@ pub(crate) unsafe fn v8_string_new_from_utf8(isolate: *const V8Isolate, data: *c
         let arg0: *const *mut c_void = &mut arg0_value;
         v8_string_new_from_utf8_func(arg0, isolate, data, new_type, length);
         arg0_value
-    }
-    #[cfg(target_os = "macos")]
-    {
-        v8_string_new_from_utf8_func(isolate, data, new_type, length)
     }
 }
 
