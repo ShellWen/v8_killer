@@ -148,7 +148,7 @@ This is an example of how to list things you need to use the software and how to
 In short, you need pass environment variable `V8_KILLER_CONFIG_FILE_PATH` to the launcher, and the launcher will load the config file and inject the payload into the target program.  
 Here we use Node.js as an example.
 ```sh
-V8_KILLER_CONFIG_FILE_PATH=path_to_config.toml v8_killer_launcher /use/bin/node path_to_target.js
+V8_KILLER_CONFIG_FILE_PATH=path_to_config.toml v8_killer_launcher /usr/bin/node path_to_target.js
 ```
 Example config files can be found in the `examples/configs/` directory.    
 Currently, v8 killer only supports toml format config files.
