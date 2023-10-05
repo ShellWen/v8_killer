@@ -98,6 +98,8 @@ So far, we support the following targets:
 | CEF      | Untested  |                                                                                                            |
 | Deno     | No        | Deno remove exports from V8. In future versions, we will introduce pattern matching to address this issue. |
 
+Pattern matching is on the way. [#12](https://github.com/ShellWen/v8_killer/issues/12)
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
