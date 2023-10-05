@@ -8,9 +8,11 @@ fn main() {
     lib_path.push(lib_filename);
     let lib_path_str = lib_path.to_str().unwrap();
 
-    let exe_cmdline = std::env::args().nth(1).expect("no exe_cmdline provided");
+    let exe = std::env::args().nth(1).expect("no executable provided");
+    let args = std::env::args().skip(2).collect::<Vec<String>>();
 
-    println!("[*] Executable cmdline: {}", exe_cmdline);
+    println!("[*] Executable: {}", exe);
+    println!("[*] Args: {:?}", args);
     println!("[*] Core lib path: {}", lib_path_str);
-    launch(lib_path_str, &exe_cmdline);
+    launch(lib_path_str, &exe, &args);
 }

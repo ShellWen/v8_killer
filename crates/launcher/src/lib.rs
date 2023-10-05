@@ -25,31 +25,13 @@ pub fn default_lib_filename<'a>() -> Result<&'a str, Box<dyn Error>> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn launch(lib_path: &str, exe_cmdline: &str) {
+pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
     use std::process::Command;
-    use std::process::Stdio;
     use std::process::ExitStatus;
+    use std::process::Stdio;
 
-    println!("exe_cmdline: {}", exe_cmdline);
-
-    // 分割 cmdline 中的文件路径和参数
-    // 需要考虑路径可能包含空格的情况
-    let (exe_path, args) = if exe_cmdline.starts_with("\"") {
-        let mut iter = exe_cmdline[1..].split("\"");
-        let exe_path = iter.next().unwrap();
-        let args = iter.next().unwrap_or("").trim();
-        (exe_path, args)
-    } else {
-        let mut iter = exe_cmdline.split(" ");
-        let exe_path = iter.next().unwrap();
-        let args = iter.next().unwrap_or("").trim();
-        (exe_path, args)
-    };
-
-    let args_vec: Vec<&str> = args.split(" ").collect();
-
-    let mut child = Command::new(exe_path)
-        .args(args_vec)
+    let mut child = Command::new(executable)
+        .args(args)
         .env("LD_PRELOAD", lib_path)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
@@ -67,51 +49,63 @@ pub fn launch(lib_path: &str, exe_cmdline: &str) {
 }
 
 #[cfg(target_os = "windows")]
-pub fn launch(lib_path: &str, exe_cmdline: &str) {
+pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
+    use std::ffi::c_void;
+    use windows::core::{s, w};
+    use windows::core::PWSTR;
+    use windows::Win32::Foundation::TRUE;
+    use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
+    use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+    use windows::Win32::System::Memory::{VirtualAllocEx, MEM_COMMIT, MEM_RESERVE, PAGE_READWRITE};
+    use windows::Win32::System::Threading::{
+        CreateProcessW, CreateRemoteThread, ResumeThread, WaitForSingleObject, CREATE_SUSPENDED,
+        INFINITE, LPTHREAD_START_ROUTINE, PROCESS_INFORMATION,
+    };
+
+    fn utf16_vec_from_str(str: String) -> Vec<u16> {
+        let utf16 = str.encode_utf16().collect::<Vec<u16>>();
+        let mut ret = Vec::<u16>::with_capacity(utf16.len() + 1);
+        ret.extend(utf16);
+        ret.push(0u16);
+        ret
+    }
+
+    fn get_pwstr_length(pwstr: PWSTR) -> usize {
+        let mut len = 0usize;
+        while unsafe { *pwstr.0.offset(len.try_into().unwrap()) } != 0 {
+            len += 1;
+        }
+        len
+    }
+
     unsafe {
-        use std::ffi::c_void;
-        use windows::core::{
-            s, w,
-        };
-        use windows::Win32::Foundation::TRUE;
-        use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
-        use windows::Win32::System::Memory::{
-            MEM_COMMIT,
-            MEM_RESERVE,
-            PAGE_READWRITE,
-            VirtualAllocEx,
-        };
-        use windows::Win32::System::Threading::{
-            CREATE_SUSPENDED,
-            CreateProcessW,
-            CreateRemoteThread,
-            INFINITE,
-            LPTHREAD_START_ROUTINE,
-            PROCESS_INFORMATION,
-            ResumeThread,
-            WaitForSingleObject,
-        };
-        use windows::Win32::System::LibraryLoader::{
-            GetModuleHandleW,
-            GetProcAddress,
-        };
-        use windows::core::PWSTR;
+        // let args_str = format!("\"{}\" ", executable) + &args
+        //         .iter()
+        //         .map(|arg| format!("\"{}\"", arg))
+        //         .collect::<Vec<String>>()
+        //         .join(" ");
+        let args_str: String = format!(
+            "\"{}\" {}",
+            executable,
+            args.iter()
+                .map(|arg| arg.to_string())
+                // .map(|arg| format!("\"{}\"", arg))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
+        println!("args_str: {}", args_str);
+        let mut args_utf16_vec = utf16_vec_from_str(args_str);
+        let args_pwstr = PWSTR::from_raw(args_utf16_vec.as_mut_ptr());
+        println!("args_pwstr: {}", args_pwstr.to_string().unwrap());
+        let mut path_utf16_vec = utf16_vec_from_str(lib_path.to_string());
+        let path_pwstr = PWSTR::from_raw(path_utf16_vec.as_mut_ptr());
+        let path_utf16_zeroend_size = get_pwstr_length(path_pwstr) * 2 + 2;
 
-        let mut path_utf16_zeroend = lib_path.encode_utf16().collect::<Vec<u16>>();
-        // \0 终止符
-        path_utf16_zeroend.push(0);
-        // UTF-16 的字节数
-        let path_utf16_zeroend_size = path_utf16_zeroend.len() * 2;
-
-        let mut exe_cmdline_utf16_vec = exe_cmdline.encode_utf16().collect::<Vec<u16>>();
-        // \0 终止符
-        exe_cmdline_utf16_vec.push(0);
-        let exe_cmdline_pwstr = PWSTR::from_raw(exe_cmdline_utf16_vec.as_mut_ptr());
         let mut process_info = PROCESS_INFORMATION::default();
         println!("[*] Creating process.");
         CreateProcessW(
             None,
-            exe_cmdline_pwstr,
+            args_pwstr,
             None,
             None,
             TRUE,
@@ -120,7 +114,8 @@ pub fn launch(lib_path: &str, exe_cmdline: &str) {
             None,
             &Default::default(),
             &mut process_info,
-        ).expect("CreateProcessW calling failed");
+        )
+        .expect("CreateProcessW calling failed");
         println!("[*] PID: {}", process_info.dwProcessId);
         println!("[*] Alloc core lib path memory.");
         let remote_memory = VirtualAllocEx(
@@ -136,47 +131,40 @@ pub fn launch(lib_path: &str, exe_cmdline: &str) {
         WriteProcessMemory(
             process_info.hProcess,
             remote_memory,
-            path_utf16_zeroend.as_ptr() as *const c_void,
+            path_pwstr.0 as *const c_void,
             path_utf16_zeroend_size,
             None,
-        ).expect("WriteProcessMemory called failed");
+        )
+        .expect("WriteProcessMemory called failed");
         // let r_func_addr = unsafe{GetProcAddress(
         //     GetModuleHandleA("kernel32.dll\0".as_ptr() as _),
         //     "LoadLibraryW\0".as_ptr() as _,
         // )};
         println!("[*] Getting LoadLibraryW address.");
-        let kernel_handle = GetModuleHandleW(
-            w!("kernel32.dll")
-        ).unwrap();
-        let load_library_address = (GetProcAddress(
-            kernel_handle,
-            s!("LoadLibraryW"),
-        ).unwrap()) as *const c_void;
+        let kernel_handle = GetModuleHandleW(w!("kernel32.dll")).unwrap();
+        let load_library_address =
+            (GetProcAddress(kernel_handle, s!("LoadLibraryW")).unwrap()) as *const c_void;
         assert!(!load_library_address.is_null());
         println!("[*] Creating remote thread.");
         let load_remote_thread_handle = CreateRemoteThread(
             process_info.hProcess,
             None,
             0,
-            LPTHREAD_START_ROUTINE::from(
-                std::mem::transmute::<_, unsafe extern "system" fn(*mut c_void) -> u32>(
-                    load_library_address)),
+            LPTHREAD_START_ROUTINE::from(std::mem::transmute::<
+                _,
+                unsafe extern "system" fn(*mut c_void) -> u32,
+            >(load_library_address)),
             Some(remote_memory),
             0,
             None,
-        ).unwrap();
+        )
+        .unwrap();
         println!("[*] Core lib inject success. Waiting for thread end.");
-        WaitForSingleObject(
-            load_remote_thread_handle,
-            INFINITE,
-        );
+        WaitForSingleObject(load_remote_thread_handle, INFINITE);
         println!("[*] Thread ended. Resume original thread.");
         println!("[*] --- Following is the original process output ---");
         ResumeThread(process_info.hThread);
-        WaitForSingleObject(
-            process_info.hProcess,
-            INFINITE,
-        );
+        WaitForSingleObject(process_info.hProcess, INFINITE);
     }
 }
 
