@@ -28,7 +28,7 @@ pub(crate) unsafe fn process_script(
             );
             let processors = &rule.processors;
             processors.iter().for_each(|processor_item| {
-                let processor = processor_item.deref();
+                let processor = processor_item;
                 let result = processor.process(&mut source);
                 if result.is_err() {
                     println!(
