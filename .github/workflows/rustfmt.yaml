@@ -1,0 +1,17 @@
+on: [ push, pull_request ]
+
+name: Rustfmt
+
+jobs:
+  rustfmt:
+    name: rustfmt
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check

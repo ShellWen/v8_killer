@@ -1,0 +1,26 @@
+on: [ push, pull_request ]
+
+name: CI
+
+jobs:
+  build:
+    name: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --verbose --release
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-release
+          path: |
+            target/release/v8_killer_core.dll
+            target/release/v8_killer_launcher.exe
+            target/release/libv8_killer_core.so
+            target/release/libv8_killer_launcher.so
+            target/release/v8_killer_launcher
