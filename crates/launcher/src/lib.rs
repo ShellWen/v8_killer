@@ -79,11 +79,6 @@ pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
     }
 
     unsafe {
-        // let args_str = format!("\"{}\" ", executable) + &args
-        //         .iter()
-        //         .map(|arg| format!("\"{}\"", arg))
-        //         .collect::<Vec<String>>()
-        //         .join(" ");
         let args_str: String = format!(
             "\"{}\" {}",
             executable,
@@ -93,10 +88,8 @@ pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
                 .collect::<Vec<String>>()
                 .join(" ")
         );
-        println!("args_str: {}", args_str);
         let mut args_utf16_vec = utf16_vec_from_str(args_str);
         let args_pwstr = PWSTR::from_raw(args_utf16_vec.as_mut_ptr());
-        println!("args_pwstr: {}", args_pwstr.to_string().unwrap());
         let mut path_utf16_vec = utf16_vec_from_str(lib_path.to_string());
         let path_pwstr = PWSTR::from_raw(path_utf16_vec.as_mut_ptr());
         let path_utf16_zeroend_size = get_pwstr_length(path_pwstr) * 2 + 2;
