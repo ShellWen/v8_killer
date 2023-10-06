@@ -11,7 +11,7 @@ use crate::processor::SourceProcessor;
 #[derive(Deserialize, Debug)]
 pub struct ConfigRule {
     pub matcher: Box<SourceMatcher>,
-    pub processors: Vec<Box<SourceProcessor>>,
+    pub processors: Vec<SourceProcessor>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -29,6 +29,6 @@ impl FileConfig for Config {
         let mut file_content = String::new();
         file.read_to_string(&mut file_content)
             .expect("read config file failed");
-        toml::from_str(&file_content.as_str()).expect("parse config file failed")
+        toml::from_str(file_content.as_str()).expect("parse config file failed")
     }
 }
