@@ -1,4 +1,5 @@
 use serde::Deserialize;
+
 use crate::source::Source;
 
 pub(crate) trait SourceMatcherTrait {

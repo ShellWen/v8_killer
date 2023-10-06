@@ -51,8 +51,8 @@ pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
 #[cfg(target_os = "windows")]
 pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
     use std::ffi::c_void;
-    use windows::core::{s, w};
     use windows::core::PWSTR;
+    use windows::core::{s, w};
     use windows::Win32::Foundation::TRUE;
     use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
     use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};

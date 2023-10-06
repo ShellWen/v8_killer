@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use ctor::ctor;
-use frida_gum::{Gum, interceptor::Interceptor, Module};
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
+use frida_gum::{interceptor::Interceptor, Gum, Module};
 use lazy_static::lazy_static;
 
 use crate::config::{Config, FileConfig};
@@ -10,13 +10,13 @@ use crate::core::process_script;
 use crate::v8_exports::V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL;
 use crate::v8_sys::{V8Context, V8Source};
 
-mod v8_exports;
 mod config;
-mod matcher;
-mod source;
-mod processor;
-mod v8_sys;
 mod core;
+mod matcher;
+mod processor;
+mod source;
+mod v8_exports;
+mod v8_sys;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
@@ -31,13 +31,13 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
     fn on_enter(&mut self, frida_context: InvocationContext) {
         unsafe {
             #[cfg(any(target_os = "linux", target_os = "macos"))]
-                let context = frida_context.arg(0) as *const V8Context;
+            let context = frida_context.arg(0) as *const V8Context;
             #[cfg(any(target_os = "linux", target_os = "macos"))]
-                let source = frida_context.arg(1) as *mut V8Source;
+            let source = frida_context.arg(1) as *mut V8Source;
             #[cfg(target_os = "windows")]
-                let context = frida_context.arg(1) as *const V8Context;
+            let context = frida_context.arg(1) as *const V8Context;
             #[cfg(target_os = "windows")]
-                let source = frida_context.arg(2) as *mut V8Source;
+            let source = frida_context.arg(2) as *mut V8Source;
             let config = CONFIG.as_ref().unwrap();
             process_script(config, context, source);
         }
@@ -55,7 +55,7 @@ fn init() {
         // fix [#11](https://github.com/ShellWen/v8_killer/issues/11)
         let _ = AttachConsole(ATTACH_PARENT_PROCESS);
     }
-    
+
     // 读取环境变量
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
     match config_file_path {
@@ -72,16 +72,26 @@ fn init() {
 
             interceptor.begin_transaction();
 
-            let v8_script_compiler_compile_function_internal = Module::find_export_by_name(None, V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL);
+            let v8_script_compiler_compile_function_internal = Module::find_export_by_name(
+                None,
+                V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL,
+            );
 
             match v8_script_compiler_compile_function_internal {
                 None => {
                     println!("[-] v8_script_compiler_compile_function_internal not found")
                 }
                 Some(addr) => {
-                    println!("[*] v8_script_compiler_compile_function_internal found: {:?}", addr.0);
-                    let mut v8_script_compiler_compile_function_internal_listener = V8ScriptCompilerCompileFunctionInternalListener;
-                    interceptor.attach(addr, &mut v8_script_compiler_compile_function_internal_listener);
+                    println!(
+                        "[*] v8_script_compiler_compile_function_internal found: {:?}",
+                        addr.0
+                    );
+                    let mut v8_script_compiler_compile_function_internal_listener =
+                        V8ScriptCompilerCompileFunctionInternalListener;
+                    interceptor.attach(
+                        addr,
+                        &mut v8_script_compiler_compile_function_internal_listener,
+                    );
                 }
             }
 

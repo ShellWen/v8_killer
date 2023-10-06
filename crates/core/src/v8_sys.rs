@@ -1,13 +1,19 @@
 #![allow(non_camel_case_types)]
 
 use std::ffi::{c_char, c_int, c_void};
+
 use frida_gum::Module;
-use crate::v8_exports::{V8_CONTEXT_GET_ISOLATE_SYMBOL, V8_STRING_NEW_FROM_UTF8_PTR, V8_STRING_UTF8LENGTH_SYMBOL, V8_STRING_WRITE_UTF8_SYMBOL};
+
+use crate::v8_exports::{
+    V8_CONTEXT_GET_ISOLATE_SYMBOL, V8_STRING_NEW_FROM_UTF8_PTR, V8_STRING_UTF8LENGTH_SYMBOL,
+    V8_STRING_WRITE_UTF8_SYMBOL,
+};
 
 pub(crate) type V8Context = c_void;
 pub(crate) type V8Isolate = c_void;
 pub(crate) type V8String = c_void;
 pub(crate) type V8Local<T> = *const T;
+
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct V8Source {
@@ -40,39 +46,86 @@ pub(crate) struct V8Source {
 }
 
 type v8__Context__GetIsolate = unsafe extern "C" fn(context: *const V8Context) -> *const V8Isolate;
-type v8__String__Utf8Length = unsafe extern "C" fn(this: *const V8String, isolate: *const V8Isolate) -> usize;
-type v8__String__WriteUtf8 = unsafe extern "C" fn(this: *const V8String, isolate: *const V8Isolate, buffer: *mut c_char, length: c_int, nchars_ref: *mut usize, options: c_int) -> c_int;
+type v8__String__Utf8Length =
+    unsafe extern "C" fn(this: *const V8String, isolate: *const V8Isolate) -> usize;
+type v8__String__WriteUtf8 = unsafe extern "C" fn(
+    this: *const V8String,
+    isolate: *const V8Isolate,
+    buffer: *mut c_char,
+    length: c_int,
+    nchars_ref: *mut usize,
+    options: c_int,
+) -> c_int;
 #[cfg(target_os = "linux")]
-type v8__String__NewFromUtf8 = unsafe extern "C" fn(isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String>;
+type v8__String__NewFromUtf8 = unsafe extern "C" fn(
+    isolate: *const V8Isolate,
+    data: *const c_char,
+    new_type: i32,
+    length: i32,
+) -> V8Local<V8String>;
 #[cfg(target_os = "windows")]
-type v8__String__NewFromUtf8 = unsafe extern "C" fn(arg0: *const *mut c_void, isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String>;
+type v8__String__NewFromUtf8 = unsafe extern "C" fn(
+    arg0: *const *mut c_void,
+    isolate: *const V8Isolate,
+    data: *const c_char,
+    new_type: i32,
+    length: i32,
+) -> V8Local<V8String>;
 #[cfg(target_os = "macos")]
-type v8__String__NewFromUtf8 = unsafe extern "C" fn(isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String>;
+type v8__String__NewFromUtf8 = unsafe extern "C" fn(
+    isolate: *const V8Isolate,
+    data: *const c_char,
+    new_type: i32,
+    length: i32,
+) -> V8Local<V8String>;
 
 pub(crate) unsafe fn v8_context_get_isolate(context: *const V8Context) -> *const V8Isolate {
-    let v8_context_get_isolate_ptr = Module::find_export_by_name(None, V8_CONTEXT_GET_ISOLATE_SYMBOL).unwrap();
-    let v8_context_get_isolate_func: v8__Context__GetIsolate = std::mem::transmute(v8_context_get_isolate_ptr.0);
+    let v8_context_get_isolate_ptr =
+        Module::find_export_by_name(None, V8_CONTEXT_GET_ISOLATE_SYMBOL).unwrap();
+    let v8_context_get_isolate_func: v8__Context__GetIsolate =
+        std::mem::transmute(v8_context_get_isolate_ptr.0);
 
     v8_context_get_isolate_func(context)
 }
 
-pub(super) unsafe fn v8_string_utf8_length(this: *const V8String, isolate: *const V8Isolate) -> usize {
-    let v8_string_utf8_length_ptr = Module::find_export_by_name(None, V8_STRING_UTF8LENGTH_SYMBOL).unwrap();
-    let v8_string_utf8_length_func: v8__String__Utf8Length = std::mem::transmute(v8_string_utf8_length_ptr.0);
+pub(super) unsafe fn v8_string_utf8_length(
+    this: *const V8String,
+    isolate: *const V8Isolate,
+) -> usize {
+    let v8_string_utf8_length_ptr =
+        Module::find_export_by_name(None, V8_STRING_UTF8LENGTH_SYMBOL).unwrap();
+    let v8_string_utf8_length_func: v8__String__Utf8Length =
+        std::mem::transmute(v8_string_utf8_length_ptr.0);
 
     v8_string_utf8_length_func(this, isolate)
 }
 
-pub(crate) unsafe fn v8_string_write_utf8(this: *const V8String, isolate: *const V8Isolate, buffer: *mut c_char, length: c_int, nchars_ref: *mut usize, options: c_int) -> c_int {
-    let v8_string_write_utf8_ptr = Module::find_export_by_name(None, V8_STRING_WRITE_UTF8_SYMBOL).unwrap();
-    let v8_string_write_utf8_func: v8__String__WriteUtf8 = std::mem::transmute(v8_string_write_utf8_ptr.0);
+pub(crate) unsafe fn v8_string_write_utf8(
+    this: *const V8String,
+    isolate: *const V8Isolate,
+    buffer: *mut c_char,
+    length: c_int,
+    nchars_ref: *mut usize,
+    options: c_int,
+) -> c_int {
+    let v8_string_write_utf8_ptr =
+        Module::find_export_by_name(None, V8_STRING_WRITE_UTF8_SYMBOL).unwrap();
+    let v8_string_write_utf8_func: v8__String__WriteUtf8 =
+        std::mem::transmute(v8_string_write_utf8_ptr.0);
 
     v8_string_write_utf8_func(this, isolate, buffer, length, nchars_ref, options)
 }
 
-pub(crate) unsafe fn v8_string_new_from_utf8(isolate: *const V8Isolate, data: *const c_char, new_type: i32, length: i32) -> V8Local<V8String> {
-    let v8_string_new_from_utf8_ptr = Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_PTR).unwrap();
-    let v8_string_new_from_utf8_func: v8__String__NewFromUtf8 = std::mem::transmute(v8_string_new_from_utf8_ptr.0);
+pub(crate) unsafe fn v8_string_new_from_utf8(
+    isolate: *const V8Isolate,
+    data: *const c_char,
+    new_type: i32,
+    length: i32,
+) -> V8Local<V8String> {
+    let v8_string_new_from_utf8_ptr =
+        Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_PTR).unwrap();
+    let v8_string_new_from_utf8_func: v8__String__NewFromUtf8 =
+        std::mem::transmute(v8_string_new_from_utf8_ptr.0);
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
@@ -89,18 +142,34 @@ pub(crate) unsafe fn v8_string_new_from_utf8(isolate: *const V8Isolate, data: *c
     }
 }
 
-pub(crate) fn string_from_local_string(isolate: *const V8Isolate, local_string: *const V8String) -> String {
+pub(crate) fn string_from_local_string(
+    isolate: *const V8Isolate,
+    local_string: *const V8String,
+) -> String {
     unsafe {
         let length = v8_string_utf8_length(local_string, isolate);
         // 我也不知道为什么要 +1，但是不 +1 的话就有可能 SIGSEGV ¯\_(ツ)_/¯
         // 反正不可能是因为 \0 的问题
         let mut buffer: Vec<c_char> = vec![0; length + 1];
-        v8_string_write_utf8(local_string, isolate, buffer.as_mut_ptr(), -1, std::ptr::null_mut(), 0);
-        std::ffi::CStr::from_ptr(buffer.as_ptr()).to_str().unwrap().to_string()
+        v8_string_write_utf8(
+            local_string,
+            isolate,
+            buffer.as_mut_ptr(),
+            -1,
+            std::ptr::null_mut(),
+            0,
+        );
+        std::ffi::CStr::from_ptr(buffer.as_ptr())
+            .to_str()
+            .unwrap()
+            .to_string()
     }
 }
 
-pub(crate) fn local_string_from_string(isolate: *const V8Isolate, string: String) -> V8Local<V8String> {
+pub(crate) fn local_string_from_string(
+    isolate: *const V8Isolate,
+    string: String,
+) -> V8Local<V8String> {
     unsafe {
         let s_ptr = std::ffi::CString::new(string).unwrap().into_raw();
         v8_string_new_from_utf8(isolate, s_ptr, 0, -1)
