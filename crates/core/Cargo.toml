@@ -13,3 +13,9 @@ lazy_static = "1.4.0"
 ctor = "0.2.4"
 toml = "0.8.1"
 serde = { version = "1.0.188", features = ["derive"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.51.1", features = [
+    "Win32_Foundation",
+    "Win32_System_Console",
+] }

@@ -48,6 +48,14 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
 
 #[ctor]
 fn init() {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+
+        // fix [#11](https://github.com/ShellWen/v8_killer/issues/11)
+        let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+    
     // 读取环境变量
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
     match config_file_path {
