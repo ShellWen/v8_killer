@@ -10,9 +10,11 @@ crate-type = ["cdylib"]
 [dependencies]
 frida-gum = { version = "0.13.2", features = ["auto-download", "invocation-listener"] }
 lazy_static = "1.4.0"
-ctor = "0.2.4"
-toml = "0.8.1"
+ctor = "0.2.5"
+toml = "0.8.2"
 serde = { version = "1.0.188", features = ["derive"] }
+proc-maps = "0.3.2"
+aobscan = "0.3.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.51.1", features = [

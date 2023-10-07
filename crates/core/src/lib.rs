@@ -2,21 +2,22 @@ use std::path::Path;
 
 use ctor::ctor;
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
-use frida_gum::{interceptor::Interceptor, Gum, Module};
+use frida_gum::{interceptor::Interceptor, Gum};
 use lazy_static::lazy_static;
 
 use crate::config::{Config, FileConfig};
 use crate::core::process_script;
-use crate::v8_exports::V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL;
-use crate::v8_sys::{V8Context, V8Source};
+use crate::v8_exports::EXPORTS;
+use crate::v8_types::{V8Context, V8Source};
 
 mod config;
 mod core;
 mod matcher;
+mod memory_region;
 mod processor;
 mod source;
 mod v8_exports;
-mod v8_sys;
+mod v8_types;
 
 lazy_static! {
     static ref GUM: Gum = unsafe { Gum::obtain() };
@@ -72,28 +73,15 @@ fn init() {
 
             interceptor.begin_transaction();
 
-            let v8_script_compiler_compile_function_internal = Module::find_export_by_name(
-                None,
-                V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL,
-            );
+            let v8_script_compiler_compile_function_internal =
+                EXPORTS.v8_script_compiler_compile_function_internal;
 
-            match v8_script_compiler_compile_function_internal {
-                None => {
-                    println!("[-] v8_script_compiler_compile_function_internal not found")
-                }
-                Some(addr) => {
-                    println!(
-                        "[*] v8_script_compiler_compile_function_internal found: {:?}",
-                        addr.0
-                    );
-                    let mut v8_script_compiler_compile_function_internal_listener =
-                        V8ScriptCompilerCompileFunctionInternalListener;
-                    interceptor.attach(
-                        addr,
-                        &mut v8_script_compiler_compile_function_internal_listener,
-                    );
-                }
-            }
+            let mut v8_script_compiler_compile_function_internal_listener =
+                V8ScriptCompilerCompileFunctionInternalListener;
+            interceptor.attach(
+                v8_script_compiler_compile_function_internal,
+                &mut v8_script_compiler_compile_function_internal_listener,
+            );
 
             interceptor.end_transaction();
         }

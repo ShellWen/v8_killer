@@ -9,6 +9,21 @@ use crate::matcher::SourceMatcher;
 use crate::processor::SourceProcessor;
 
 #[derive(Deserialize, Debug)]
+pub struct Common {
+    pub use_export_name: bool,
+    pub use_sigscan: bool,
+}
+
+impl Default for Common {
+    fn default() -> Self {
+        Common {
+            use_export_name: true,
+            use_sigscan: true,
+        }
+    }
+}
+
+#[derive(Deserialize, Debug)]
 pub struct ConfigRule {
     pub matcher: Box<SourceMatcher>,
     pub processors: Vec<SourceProcessor>,
@@ -16,6 +31,8 @@ pub struct ConfigRule {
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    #[serde(default)]
+    pub common: Common,
     pub rules: HashMap<String, ConfigRule>,
 }
 

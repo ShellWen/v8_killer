@@ -1,0 +1,11 @@
+[common]
+use_export_name = true
+use_sigscan = true
+
+[rules.hook_name]
+matcher = { type = "resource-name-keyword", keyword = "index.js" }
+
+processors = [
+    { type = "insert-before", content = "console.log('before')\n\n\n" },
+    { type = "insert-after", content = "\n\n\nconsole.log('after')" }
+]
