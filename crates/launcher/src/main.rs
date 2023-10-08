@@ -1,8 +1,12 @@
 use std::env::current_exe;
 
+use human_panic::setup_panic;
+
 use v8_killer_launcher::{default_lib_filename, launch};
 
 fn main() {
+    setup_panic!();
+
     // TODO: Support custom lib_filename
     let lib_filename = default_lib_filename().unwrap();
     let mut lib_path = current_exe().unwrap().parent().unwrap().to_path_buf();
