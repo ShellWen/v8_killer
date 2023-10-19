@@ -5,7 +5,7 @@ use std::ffi::{c_char, c_int, c_void};
 use frida_gum::Module;
 
 use crate::v8_exports::{
-    V8_CONTEXT_GET_ISOLATE_SYMBOL, V8_STRING_NEW_FROM_UTF8_PTR, V8_STRING_UTF8LENGTH_SYMBOL,
+    V8_CONTEXT_GET_ISOLATE_SYMBOL, V8_STRING_NEW_FROM_UTF8_SYMBOL, V8_STRING_UTF8LENGTH_SYMBOL,
     V8_STRING_WRITE_UTF8_SYMBOL,
 };
 
@@ -123,7 +123,7 @@ pub(crate) unsafe fn v8_string_new_from_utf8(
     length: i32,
 ) -> V8Local<V8String> {
     let v8_string_new_from_utf8_ptr =
-        Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_PTR).unwrap();
+        Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_SYMBOL).unwrap();
     let v8_string_new_from_utf8_func: v8__String__NewFromUtf8 =
         std::mem::transmute(v8_string_new_from_utf8_ptr.0);
 

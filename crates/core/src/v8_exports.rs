@@ -20,7 +20,7 @@ pub const V8_CONTEXT_GET_ISOLATE_SYMBOL: &str = "_ZN2v87Context10GetIsolateEv";
 pub const V8_CONTEXT_GET_ISOLATE_SYMBOL: &str = "?GetIsolate@Context@v8@@QEAAPEAVIsolate@2@XZ";
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-pub const V8_STRING_NEW_FROM_UTF8_PTR: &str =
+pub const V8_STRING_NEW_FROM_UTF8_SYMBOL: &str =
     "_ZN2v86String11NewFromUtf8EPNS_7IsolateEPKcNS_13NewStringTypeEi";
 #[cfg(target_os = "windows")]
-pub const V8_STRING_NEW_FROM_UTF8_PTR: &str = "?NewFromUtf8@String@v8@@SA?AV?$MaybeLocal@VString@v8@@@2@PEAVIsolate@2@PEBDW4NewStringType@2@H@Z";
+pub const V8_STRING_NEW_FROM_UTF8_SYMBOL: &str = "?NewFromUtf8@String@v8@@SA?AV?$MaybeLocal@VString@v8@@@2@PEAVIsolate@2@PEBDW4NewStringType@2@H@Z";
