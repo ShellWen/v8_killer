@@ -2,20 +2,20 @@ use std::path::Path;
 
 use ctor::ctor;
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
-use frida_gum::{interceptor::Interceptor, Gum, Module};
+use frida_gum::{interceptor::Interceptor, Gum};
 use lazy_static::lazy_static;
 
-use crate::config::{Config, FileConfig};
+use crate::config::{Config, ReadFromFile};
 use crate::core::process_script;
-use crate::v8_exports::V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL;
+use crate::identifier::Identifier;
 use crate::v8_sys::{V8Context, V8Source};
 
 mod config;
 mod core;
+mod identifier;
 mod matcher;
 mod processor;
 mod source;
-mod v8_exports;
 mod v8_sys;
 
 lazy_static! {
@@ -48,11 +48,12 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
 
 #[ctor]
 fn init() {
+    // Fix no output in the Windows GUI subsystem programs
+    // See also: [#11](https://github.com/ShellWen/v8_killer/issues/11)
     #[cfg(target_os = "windows")]
     unsafe {
         use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
 
-        // fix [#11](https://github.com/ShellWen/v8_killer/issues/11)
         let _ = AttachConsole(ATTACH_PARENT_PROCESS);
     }
 
@@ -72,10 +73,10 @@ fn init() {
 
             interceptor.begin_transaction();
 
-            let v8_script_compiler_compile_function_internal = Module::find_export_by_name(
-                None,
-                V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL_SYMBOL,
-            );
+            let v8_script_compiler_compile_function_internal = unsafe { CONFIG.as_ref().unwrap() }
+                .identifiers
+                .V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL
+                .identify();
 
             match v8_script_compiler_compile_function_internal {
                 None => {
