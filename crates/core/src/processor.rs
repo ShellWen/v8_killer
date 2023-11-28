@@ -12,22 +12,22 @@ pub(crate) trait SourceProcessorTrait {
 #[serde(tag = "type")]
 pub enum SourceProcessor {
     #[serde(rename = "insert-before")]
-    InsertBeforeProcessor(InsertBeforeProcessor),
+    InsertBefore(InsertBeforeProcessor),
     #[serde(rename = "insert-after")]
-    InsertAfterProcessor(InsertAfterProcessor),
+    InsertAfter(InsertAfterProcessor),
     #[serde(rename = "replace")]
-    ReplaceProcessor(ReplaceProcessor),
+    Replace(ReplaceProcessor),
     #[serde(rename = "replace-regexp")]
-    ReplaceRegexpProcessor(ReplaceRegexpProcessor),
+    ReplaceRegexp(ReplaceRegexpProcessor),
 }
 
 impl SourceProcessor {
     pub fn process<'a>(&self, source: &'a mut Source) -> Result<&'a mut Source, Error> {
         match self {
-            SourceProcessor::InsertBeforeProcessor(processor) => processor.process(source),
-            SourceProcessor::InsertAfterProcessor(processor) => processor.process(source),
-            SourceProcessor::ReplaceProcessor(processor) => processor.process(source),
-            SourceProcessor::ReplaceRegexpProcessor(processor) => processor.process(source),
+            SourceProcessor::InsertBefore(processor) => processor.process(source),
+            SourceProcessor::InsertAfter(processor) => processor.process(source),
+            SourceProcessor::Replace(processor) => processor.process(source),
+            SourceProcessor::ReplaceRegexp(processor) => processor.process(source),
         }
     }
 }

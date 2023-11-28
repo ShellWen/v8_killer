@@ -10,16 +10,16 @@ pub(crate) trait SourceMatcher {
 #[serde(tag = "type")]
 pub(crate) enum SourceMatcherEnum {
     #[serde(rename = "resource-name-keyword")]
-    ResourceNameKeywordMatcher(ResourceNameKeywordMatcher),
+    ResourceNameKeyword(ResourceNameKeywordMatcher),
     #[serde(rename = "resource-name-regexp")]
-    ResourceNameRegexpMatcher(ResourceNameRegexpMatcher),
+    ResourceNameRegexp(ResourceNameRegexpMatcher),
 }
 
 impl SourceMatcher for SourceMatcherEnum {
     fn matches(&self, source: &Source) -> bool {
         match self {
-            SourceMatcherEnum::ResourceNameKeywordMatcher(matcher) => matcher.matches(source),
-            SourceMatcherEnum::ResourceNameRegexpMatcher(matcher) => matcher.matches(source),
+            SourceMatcherEnum::ResourceNameKeyword(matcher) => matcher.matches(source),
+            SourceMatcherEnum::ResourceNameRegexp(matcher) => matcher.matches(source),
         }
     }
 }
