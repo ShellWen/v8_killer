@@ -2,21 +2,21 @@ use serde::Deserialize;
 
 use crate::source::Source;
 
-pub(crate) trait SourceMatcherTrait {
+pub(crate) trait SourceMatcher {
     fn matches(&self, resource: &Source) -> bool;
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
-pub enum SourceMatcher {
+pub(crate) enum SourceMatcherEnum {
     #[serde(rename = "resource-name-keyword")]
     ResourceNameKeywordMatcher(ResourceNameKeywordMatcher),
 }
 
-impl SourceMatcher {
-    pub fn matches(&self, source: &Source) -> bool {
+impl SourceMatcher for SourceMatcherEnum {
+    fn matches(&self, source: &Source) -> bool {
         match self {
-            SourceMatcher::ResourceNameKeywordMatcher(matcher) => matcher.matches(source),
+            SourceMatcherEnum::ResourceNameKeywordMatcher(matcher) => matcher.matches(source),
         }
     }
 }
@@ -26,7 +26,7 @@ pub struct ResourceNameKeywordMatcher {
     pub keyword: String,
 }
 
-impl SourceMatcherTrait for ResourceNameKeywordMatcher {
+impl SourceMatcher for ResourceNameKeywordMatcher {
     fn matches(&self, source: &Source) -> bool {
         source.resource_name.contains(&self.keyword)
     }

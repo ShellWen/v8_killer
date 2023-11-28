@@ -5,25 +5,28 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use crate::matcher::SourceMatcher;
+use crate::identifier::Identifiers;
+use crate::matcher::SourceMatcherEnum;
 use crate::processor::SourceProcessor;
 
 #[derive(Deserialize, Debug)]
-pub struct ConfigRule {
-    pub matcher: Box<SourceMatcher>,
-    pub processors: Vec<SourceProcessor>,
+pub(crate) struct ConfigRule {
+    pub(crate) matcher: Box<SourceMatcherEnum>,
+    pub(crate) processors: Vec<SourceProcessor>,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Config {
-    pub rules: HashMap<String, ConfigRule>,
+pub(crate) struct Config {
+    #[serde(default)]
+    pub(crate) identifiers: Identifiers,
+    pub(crate) rules: HashMap<String, ConfigRule>,
 }
 
-pub trait FileConfig {
+pub(crate) trait ReadFromFile {
     fn load_from_toml(file_path: &Path) -> Config;
 }
 
-impl FileConfig for Config {
+impl ReadFromFile for Config {
     fn load_from_toml(file_path: &Path) -> Config {
         let mut file = File::open(file_path).expect("open config file failed");
         let mut file_content = String::new();

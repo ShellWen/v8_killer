@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use crate::config::Config;
+use crate::matcher::SourceMatcher;
 use crate::source::Source;
 use crate::v8_sys::{
     local_string_from_string, string_from_local_string, v8_context_get_isolate, V8Context, V8Source,

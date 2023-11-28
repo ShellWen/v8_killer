@@ -2,12 +2,8 @@
 
 use std::ffi::{c_char, c_int, c_void};
 
-use frida_gum::Module;
-
-use crate::v8_exports::{
-    V8_CONTEXT_GET_ISOLATE_SYMBOL, V8_STRING_NEW_FROM_UTF8_SYMBOL, V8_STRING_UTF8LENGTH_SYMBOL,
-    V8_STRING_WRITE_UTF8_SYMBOL,
-};
+use crate::identifier::Identifier;
+use crate::CONFIG;
 
 pub(crate) type V8Context = c_void;
 pub(crate) type V8Isolate = c_void;
@@ -80,8 +76,13 @@ type v8__String__NewFromUtf8 = unsafe extern "C" fn(
 ) -> V8Local<V8String>;
 
 pub(crate) unsafe fn v8_context_get_isolate(context: *const V8Context) -> *const V8Isolate {
-    let v8_context_get_isolate_ptr =
-        Module::find_export_by_name(None, V8_CONTEXT_GET_ISOLATE_SYMBOL).unwrap();
+    let v8_context_get_isolate_ptr = CONFIG
+        .as_ref()
+        .unwrap()
+        .identifiers
+        .V8_CONTEXT_GET_ISOLATE
+        .identify()
+        .unwrap();
     let v8_context_get_isolate_func: v8__Context__GetIsolate =
         std::mem::transmute(v8_context_get_isolate_ptr.0);
 
@@ -92,8 +93,13 @@ pub(super) unsafe fn v8_string_utf8_length(
     this: *const V8String,
     isolate: *const V8Isolate,
 ) -> usize {
-    let v8_string_utf8_length_ptr =
-        Module::find_export_by_name(None, V8_STRING_UTF8LENGTH_SYMBOL).unwrap();
+    let v8_string_utf8_length_ptr = CONFIG
+        .as_ref()
+        .unwrap()
+        .identifiers
+        .V8_STRING_UTF8LENGTH
+        .identify()
+        .unwrap();
     let v8_string_utf8_length_func: v8__String__Utf8Length =
         std::mem::transmute(v8_string_utf8_length_ptr.0);
 
@@ -108,8 +114,13 @@ pub(crate) unsafe fn v8_string_write_utf8(
     nchars_ref: *mut usize,
     options: c_int,
 ) -> c_int {
-    let v8_string_write_utf8_ptr =
-        Module::find_export_by_name(None, V8_STRING_WRITE_UTF8_SYMBOL).unwrap();
+    let v8_string_write_utf8_ptr = CONFIG
+        .as_ref()
+        .unwrap()
+        .identifiers
+        .V8_STRING_WRITE_UTF8
+        .identify()
+        .unwrap();
     let v8_string_write_utf8_func: v8__String__WriteUtf8 =
         std::mem::transmute(v8_string_write_utf8_ptr.0);
 
@@ -122,8 +133,13 @@ pub(crate) unsafe fn v8_string_new_from_utf8(
     new_type: i32,
     length: i32,
 ) -> V8Local<V8String> {
-    let v8_string_new_from_utf8_ptr =
-        Module::find_export_by_name(None, V8_STRING_NEW_FROM_UTF8_SYMBOL).unwrap();
+    let v8_string_new_from_utf8_ptr = CONFIG
+        .as_ref()
+        .unwrap()
+        .identifiers
+        .V8_STRING_NEW_FROM_UTF8
+        .identify()
+        .unwrap();
     let v8_string_new_from_utf8_func: v8__String__NewFromUtf8 =
         std::mem::transmute(v8_string_new_from_utf8_ptr.0);
 
