@@ -3,12 +3,17 @@
 site_name: V8 Killer Docs
 site_author: ShellWen <me@shellwen.com>
 site_description: Official Documentation of V8 Killer
+site_url: https://shellwen.github.io/v8_killer
+edit_uri: blob/master/docs/docs/
 
 repo_name: shellwen/v8_killer
 repo_url: https://github.com/shellwen/v8_killer
 
 theme:
   name: material
+  icon:
+    edit: material/pencil
+    view: material/eye
   features:
     - search.suggest
     - search.highlight
@@ -23,6 +28,7 @@ theme:
     - toc.follow
     - toc.integrate
     - navigation.top
+    - content.action.edit
   palette:
     - scheme: default
       media: "(prefers-color-scheme: light)"
@@ -79,10 +85,10 @@ extra:
     - icon: fontawesome/brands/github-alt
       link: https://github.com/ShellWen/v8_killer
   alternate:
-    - link: /
+    - link: /v8_killer/
       lang: en
       name: en - English
-    - link: /zh/
+    - link: /v8_killer/zh/
       lang: zh
       name: zh - 汉语
 
