@@ -7,6 +7,7 @@
 [![Issues][issues-shield]][issues-url]{target=\_blank}
 [![MIT License][license-shield]][license-url]{target=\_blank}
 [![LinkedIn][linkedin-shield]][linkedin-url]{target=\_blank}
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/O5O4RNVHA){target=\_blank}
 
 ## V8 Killer 是什么
 
