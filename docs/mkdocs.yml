@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: V8 Killer Docs
+site_author: ShellWen <me@shellwen.com>
+site_description: Official Documentation of V8 Killer
+
+repo_name: shellwen/v8_killer
+repo_url: https://github.com/shellwen/v8_killer
+
+theme:
+  name: material
+  features:
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - navigation.indexes
+    - content.tooltips
+    - navigation.path
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - navigation.tabs
+    - toc.follow
+    - toc.integrate
+    - navigation.top
+  palette:
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        # TODO: i18n
+        name: Switch to dark mode
+
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        # TODO: i18n
+        name: Switch to light mode
+
+# noinspection YAMLSchemaValidation
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: en - English
+          build: true
+        - locale: zh
+          name: zh - 中文
+          site_name: V8 Killer 文档
+          site_description: V8 Killer 官方文档
+          nav_translations:
+            Home: 主页
+            Getting started: 开始使用
+            Development: 开发
+          theme:
+            palette:
+              - toggle:
+                  name: 切换到深色模式
+              - toggle:
+                  name: 切换到浅色模式
+          build: true
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Development: development.md
+
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/ShellWen/v8_killer
+  alternate:
+    - link: /
+      lang: en
+      name: en - English
+    - link: /zh/
+      lang: zh
+      name: zh - 汉语
+
+# noinspection YAMLSchemaValidation
+markdown_extensions:
+  - attr_list

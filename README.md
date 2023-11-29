@@ -35,7 +35,7 @@
   <p align="center">
     A tool that can inject any js into the V8 VM
     <br />
-    <a href="https://github.com/ShellWen/v8_killer/wiki"><strong>Explore the docs »</strong></a>
+    <a href="https://shellwen.github.io/v8-killer/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/ShellWen/v8_killer/issues">Report Bug</a>
@@ -44,34 +44,10 @@
   </p>
 </div>
 
+<!-- DOCUMENTATIONS -->
+## Documentations
 
-
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
-
+Documentations are available under [GitHub Pages](https://shellwen.github.io/v8-killer/).
 
 
 <!-- ABOUT THE PROJECT -->
@@ -102,93 +78,10 @@ Pattern matching is on the way. [#12](https://github.com/ShellWen/v8_killer/issu
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
-### Built With
-
-* [![Rust][rust-badge]][rust-url]
-* [![V8][v8-badge]][v8-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- GETTING STARTED -->
 ## Getting Started
 
 This is an example of how you may give instructions on setting up your project locally. To get a local copy up and running follow these simple example steps.
-
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-* rust
-  > Please follow Rust's official installation instructions: [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
-
-### Building
-
-1. Clone the repo
-   ```sh
-   git clone https://github.com/ShellWen/v8_killer.git
-   ```
-2. Run
-    ```sh
-    cargo build
-    ```
-    to get a debug build, or
-    ```sh
-    cargo build --release
-    ```
-    to get a release build.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- USAGE EXAMPLES -->
-## Usage
-
-In short, you need pass environment variable `V8_KILLER_CONFIG_FILE_PATH` to the launcher, and the launcher will load the config file and inject the payload into the target program.  
-Here we use Node.js as an example.
-```sh
-V8_KILLER_CONFIG_FILE_PATH=path_to_config.toml v8_killer_launcher /usr/bin/node path_to_target.js
-```
-Example config files can be found in the `examples/configs/` directory.    
-Currently, v8 killer only supports toml format config files.
-
-_For more examples, please refer to the [Wiki](https://github.com/ShellWen/v8_killer/wiki)_
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ROADMAP -->
-## Roadmap
-
-WIP
-
-See the [open issues](https://github.com/ShellWen/v8_killer/issues) for a full list of proposed features (and known issues).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- LICENSE -->
 ## License
@@ -207,17 +100,6 @@ ShellWen - [@realShellWen](https://twitter.com/realShellWen) - me@shellwen.com
 Project Link: [https://github.com/ShellWen/v8_killer](https://github.com/ShellWen/v8_killer)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* [ShellWen](https://github.com/ShellWen)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
