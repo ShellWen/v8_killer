@@ -9,7 +9,7 @@ V8 Killer 分为 `core` 核心部分，与 `launcher` 启动器部分。
 [//]: # (目前，我们提供预构建版本，发布在 [GitHub Releases][github-releases-url]{target=\_blank} 中)
 
 目前，我们不提供预构建版本，但你可以在 [GitHub Actions][github-actions-build-url]{target=\_blank} 中找到持续构建的二进制文件。  
-如需自行构建，请参考 [开发](/zh/development)。
+如需自行构建，请参考 [开发](development.md)。
 
 ## 编写配置文件
 

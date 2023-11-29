@@ -47,7 +47,7 @@
 <!-- DOCUMENTATIONS -->
 ## Documentations
 
-Documentations are available under [GitHub Pages](https://shellwen.github.io/v8-killer/).
+Documentations are available under [GitHub Pages](https://shellwen.github.io/v8_killer/).
 
 
 <!-- ABOUT THE PROJECT -->

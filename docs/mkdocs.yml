@@ -89,3 +89,5 @@ extra:
 # noinspection YAMLSchemaValidation
 markdown_extensions:
   - attr_list
+  - toc:
+      permalink: "#"

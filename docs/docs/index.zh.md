@@ -33,7 +33,7 @@ V8 Killer 的缺点主要集中在以下几点：
 - 部分 Electron 程序可能会检查内存中加载的动态链接库列表，这会使得 V8 Killer 在目标程序中被发现。
 
 ## 开始使用
-请转到 [开始使用](/zh/getting-started)。
+请转到 [开始使用](getting-started.md)。
 
 ## 贡献
 
@@ -42,7 +42,7 @@ V8 Killer 的缺点主要集中在以下几点：
 如果现有的代码无法满足你的需求，或是你有什么新的创意，你也可以通过 [GitHub Issues][issues-url]{target=\_blank} 告诉我们，但
 需要说明的是，项目维护者的精力有限，我们可能无法总是让你满意。  
 文档翻译可能存在滞后性，也可能因疏忽而发生错误，如果遇到这种情况，烦请通过 [GitHub Issues][issues-url]{target=\_blank} 提交给我们。  
-如果你对 Rust 有所了解，同时希望参与该项目的开发之中，请转到 [开发](/zh/development)。
+如果你对 Rust 有所了解，同时希望参与该项目的开发之中，请转到 [开发](development.md)。
 
 ## 社区
 
