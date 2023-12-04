@@ -34,7 +34,7 @@
   <h3 align="center">V8 Killer</h3>
 
   <p align="center">
-    A tool that can inject any js into the V8 VM
+    A <strong>powerful</strong> and highly <strong>customizable</strong> <strong>universal</strong> V8 virtual machine injector.
     <br />
     <a href="https://shellwen.github.io/v8_killer/"><strong>Explore the docs »</strong></a>
     <br />
