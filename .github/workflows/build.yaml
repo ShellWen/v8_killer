@@ -8,12 +8,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build
+      - name: Build for Windows/Linux
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
         run: cargo build --verbose --release
+      - name: Build for macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo build --verbose --release --target aarch64-apple-darwin
+          cargo build --verbose --release --target x86_64-apple-darwin
+          lipo -create -output target/libv8_killer_core.dylib \
+            target/aarch64-apple-darwin/release/libv8_killer_core.dylib \
+            target/x86_64-apple-darwin/release/libv8_killer_core.dylib
+          lipo -create -output target/v8_killer_launcher \
+            target/aarch64-apple-darwin/release/v8_killer_launcher \
+            target/x86_64-apple-darwin/release/v8_killer_launcher
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
@@ -24,3 +36,5 @@ jobs:
             target/release/libv8_killer_core.so
             target/release/libv8_killer_launcher.so
             target/release/v8_killer_launcher
+            target/libv8_killer_core.dylib
+            target/v8_killer_launcher
