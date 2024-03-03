@@ -13,7 +13,6 @@ pub fn default_lib_filename<'a>() -> Result<&'a str, Box<dyn Error>> {
 
     #[cfg(target_os = "macos")]
     {
-        // TODO: not sure
         Ok("libv8_killer_core.dylib")
     }
 
@@ -25,7 +24,7 @@ pub fn default_lib_filename<'a>() -> Result<&'a str, Box<dyn Error>> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
+pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
     use std::process::Command;
     use std::process::ExitStatus;
     use std::process::Stdio;
@@ -49,7 +48,7 @@ pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
 }
 
 #[cfg(target_os = "windows")]
-pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
+pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
     use std::ffi::c_void;
     use windows::core::PWSTR;
     use windows::core::{s, w};
@@ -162,12 +161,31 @@ pub fn launch(lib_path: &str, executable: &str, args: &[String]) {
 }
 
 #[cfg(target_os = "macos")]
-pub fn launch(lib_path: &str, exe_cmdline: &str) {
-    eprintln!("macOS is not supported yet.");
+pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
+    use std::process::Command;
+    use std::process::ExitStatus;
+    use std::process::Stdio;
+
+    let mut child = Command::new(executable)
+        .args(args)
+        .env("DYLD_INSERT_LIBRARIES", lib_path)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .expect("Failed to start command");
+
+    let status: ExitStatus = child.wait().expect("Failed to wait for child process");
+
+    if status.success() {
+        println!("Command executed successfully");
+    } else {
+        println!("Command failed with exit code: {:?}", status.code());
+    }
 }
 
 // 非以上系统
 #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
-pub fn launch(lib_path: &str, exe_cmdline: &str) {
+pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
     eprintln!("Unsupported platform.");
 }
