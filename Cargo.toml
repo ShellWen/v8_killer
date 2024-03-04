@@ -9,3 +9,13 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 authors = ["ShellWen <me@shellwen.com>"]
+
+[workspace.dependencies]
+clap = { version = "4.5", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1

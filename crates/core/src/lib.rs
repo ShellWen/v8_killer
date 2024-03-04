@@ -3,7 +3,9 @@ use std::path::Path;
 use ctor::ctor;
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
 use frida_gum::{interceptor::Interceptor, Gum};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
+use tracing::*;
+use tracing_subscriber::fmt::time::uptime;
 
 use crate::config::{Config, ReadFromFile};
 use crate::core::process_script;
@@ -18,9 +20,7 @@ mod processor;
 mod source;
 mod v8_sys;
 
-lazy_static! {
-    static ref GUM: Gum = unsafe { Gum::obtain() };
-}
+static GUM: Lazy<Gum> = Lazy::new(|| unsafe { Gum::obtain() });
 
 static mut CONFIG: Option<Config> = None;
 
@@ -48,6 +48,9 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
 
 #[ctor]
 fn init() {
+    tracing_subscriber::fmt().with_timer(uptime()).init();
+    info!("V8 Killer has been injected and started!");
+
     // Fix no output in the Windows GUI subsystem programs
     // See also: [#11](https://github.com/ShellWen/v8_killer/issues/11)
     #[cfg(target_os = "windows")]
@@ -61,11 +64,11 @@ fn init() {
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
     match config_file_path {
         Ok(config_file_path) => {
-            println!("[*] V8_KILLER_CONFIG_FILE_PATH: {}", config_file_path);
+            info!("V8_KILLER_CONFIG_FILE_PATH: {}", config_file_path);
             let path = Path::new(&config_file_path);
             let config = Config::load_from_toml(path);
-            println!("[*] Read Config success");
-            println!("[*] Config: {:?}", config);
+            info!("Read Config success");
+            info!("Config: {:?}", config);
             unsafe {
                 CONFIG = Some(config);
             }
@@ -80,11 +83,11 @@ fn init() {
 
             match v8_script_compiler_compile_function_internal {
                 None => {
-                    println!("[-] v8_script_compiler_compile_function_internal not found")
+                    warn!("v8_script_compiler_compile_function_internal not found")
                 }
                 Some(addr) => {
-                    println!(
-                        "[*] v8_script_compiler_compile_function_internal found: {:?}",
+                    info!(
+                        "v8_script_compiler_compile_function_internal found: {:?}",
                         addr.0
                     );
                     let mut v8_script_compiler_compile_function_internal_listener =
@@ -99,9 +102,9 @@ fn init() {
             interceptor.end_transaction();
         }
         Err(_) => {
-            println!("[-] WARN: V8_KILLER_CONFIG_FILE_PATH not found");
-            println!("[-] WARN: Please set V8_KILLER_CONFIG_FILE_PATH to config file path");
-            println!("[-] WARN: Without config file, V8 Killer will do nothing");
+            warn!("V8_KILLER_CONFIG_FILE_PATH not found");
+            warn!("Please set V8_KILLER_CONFIG_FILE_PATH to config file path");
+            warn!("Without config file, V8 Killer will do nothing");
         }
     }
 }
