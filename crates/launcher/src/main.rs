@@ -10,7 +10,8 @@ fn main() {
     let lib_path_str = lib_path.to_str().unwrap();
 
     let exe = std::env::args().nth(1).expect("no executable provided");
-    let args = std::env::args().skip(2).collect::<Vec<String>>();
+    let args = std::env::args().skip(2).collect::<Vec<_>>();
+    let args = args.iter().map(|s| s.as_str()).collect::<Vec<_>>();
 
     println!("[*] Executable: {}", exe);
     println!("[*] Args: {:?}", args);
