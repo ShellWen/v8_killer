@@ -15,7 +15,7 @@ pub(crate) struct ConfigRule {
     pub(crate) processors: Vec<SourceProcessor>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub(crate) struct Config {
     #[serde(default)]
     pub(crate) identifiers: Identifiers,

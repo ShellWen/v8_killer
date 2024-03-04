@@ -17,6 +17,7 @@ pub(crate) unsafe fn process_script(
     let isolate = v8_context_get_isolate(v8_context);
     let resource_name = string_from_local_string(isolate, (*v8_source)._resource_name);
     let source_string = string_from_local_string(isolate, (*v8_source)._source_string);
+    debug!("Processing source: {resource_name}");
     let mut source = Source {
         resource_name,
         source_string,
