@@ -1,30 +1,25 @@
+use tracing::*;
+
 use std::error::Error;
+use std::ffi::OsStr;
 
 pub fn default_lib_filename<'a>() -> Result<&'a str, Box<dyn Error>> {
     #[cfg(target_os = "linux")]
-    {
-        Ok("libv8_killer_core.so")
-    }
+    return Ok("libv8_killer_core.so");
 
     #[cfg(target_os = "windows")]
-    {
-        Ok("v8_killer_core.dll")
-    }
+    return Ok("v8_killer_core.dll");
 
     #[cfg(target_os = "macos")]
-    {
-        Ok("libv8_killer_core.dylib")
-    }
+    return Ok("libv8_killer_core.dylib");
 
     // 默认情况，如果没有匹配的操作系统，则返回一个合适的默认值
-    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-    {
-        Err("Unsupported platform".into())
-    }
+    #[allow(unreachable_code)]
+    Err("Unsupported platform".into())
 }
 
 #[cfg(target_os = "linux")]
-pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
+pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
     use std::process::Command;
     use std::process::ExitStatus;
     use std::process::Stdio;
@@ -41,14 +36,14 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
     let status: ExitStatus = child.wait().expect("Failed to wait for child process");
 
     if status.success() {
-        println!("Command executed successfully");
+        info!("Command executed successfully");
     } else {
-        println!("Command failed with exit code: {:?}", status.code());
+        error!("Command failed with exit code: {:?}", status.code());
     }
 }
 
 #[cfg(target_os = "windows")]
-pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
+pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
     use std::ffi::c_void;
     use windows::core::PWSTR;
     use windows::core::{s, w};
@@ -82,7 +77,7 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
             "\"{}\" {}",
             executable,
             args.iter()
-                .map(|arg| arg.to_string())
+                .map(|arg| arg.as_ref().to_string_lossy().into_owned())
                 // .map(|arg| format!("\"{}\"", arg))
                 .collect::<Vec<String>>()
                 .join(" ")
@@ -94,7 +89,7 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
         let path_utf16_zeroend_size = get_pwstr_length(path_pwstr) * 2 + 2;
 
         let mut process_info = PROCESS_INFORMATION::default();
-        println!("[*] Creating process.");
+        info!("Creating process.");
         CreateProcessW(
             None,
             args_pwstr,
@@ -108,8 +103,8 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
             &mut process_info,
         )
         .expect("CreateProcessW calling failed");
-        println!("[*] PID: {}", process_info.dwProcessId);
-        println!("[*] Alloc core lib path memory.");
+        info!("PID: {}", process_info.dwProcessId);
+        info!("Alloc core lib path memory.");
         let remote_memory = VirtualAllocEx(
             process_info.hProcess,
             None,
@@ -118,8 +113,8 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
             PAGE_READWRITE,
         );
         assert!(!remote_memory.is_null());
-        println!("[*] Remote lib path memory Address: {:p}.", remote_memory);
-        println!("[*] Writing core lib path to process.");
+        info!("Remote lib path memory Address: {:p}.", remote_memory);
+        info!("Writing core lib path to process.");
         WriteProcessMemory(
             process_info.hProcess,
             remote_memory,
@@ -132,12 +127,12 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
         //     GetModuleHandleA("kernel32.dll\0".as_ptr() as _),
         //     "LoadLibraryW\0".as_ptr() as _,
         // )};
-        println!("[*] Getting LoadLibraryW address.");
+        info!("Getting LoadLibraryW address.");
         let kernel_handle = GetModuleHandleW(w!("kernel32.dll")).unwrap();
         let load_library_address =
             (GetProcAddress(kernel_handle, s!("LoadLibraryW")).unwrap()) as *const c_void;
         assert!(!load_library_address.is_null());
-        println!("[*] Creating remote thread.");
+        info!("Creating remote thread.");
         let load_remote_thread_handle = CreateRemoteThread(
             process_info.hProcess,
             None,
@@ -151,17 +146,17 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
             None,
         )
         .unwrap();
-        println!("[*] Core lib inject success. Waiting for thread end.");
+        info!("Core lib inject success. Waiting for thread end.");
         WaitForSingleObject(load_remote_thread_handle, INFINITE);
-        println!("[*] Thread ended. Resume original thread.");
-        println!("[*] --- Following is the original process output ---");
+        info!("Thread ended. Resume original thread.");
+        info!("--- Following is the original process output ---");
         ResumeThread(process_info.hThread);
         WaitForSingleObject(process_info.hProcess, INFINITE);
     }
 }
 
 #[cfg(target_os = "macos")]
-pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
+pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
     use std::process::Command;
     use std::process::ExitStatus;
     use std::process::Stdio;
@@ -178,14 +173,14 @@ pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
     let status: ExitStatus = child.wait().expect("Failed to wait for child process");
 
     if status.success() {
-        println!("Command executed successfully");
+        info!("Command executed successfully");
     } else {
-        println!("Command failed with exit code: {:?}", status.code());
+        error!("Command failed with exit code: {:?}", status.code());
     }
 }
 
 // 非以上系统
 #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
 pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
-    eprintln!("Unsupported platform.");
+    error!("Unsupported platform.");
 }

@@ -1,5 +1,7 @@
 use std::ops::Deref;
 
+use tracing::*;
+
 use crate::config::Config;
 use crate::matcher::SourceMatcher;
 use crate::source::Source;
@@ -15,6 +17,7 @@ pub(crate) unsafe fn process_script(
     let isolate = v8_context_get_isolate(v8_context);
     let resource_name = string_from_local_string(isolate, (*v8_source)._resource_name);
     let source_string = string_from_local_string(isolate, (*v8_source)._source_string);
+    debug!("Processing source: {resource_name}");
     let mut source = Source {
         resource_name,
         source_string,
@@ -23,17 +26,14 @@ pub(crate) unsafe fn process_script(
         let (rule_name, rule) = rule_item;
         let is_match = &rule.matcher.deref().matches(&source);
         if *is_match {
-            println!(
-                "[*] Rule {} matched in {}",
-                rule_name, &source.resource_name
-            );
+            info!("Rule {} matched in {}", rule_name, &source.resource_name);
             let processors = &rule.processors;
             processors.iter().for_each(|processor_item| {
                 let processor = processor_item;
                 let result = processor.process(&mut source);
                 if result.is_err() {
-                    println!(
-                        "[!] Processor {:#?} process failed: {}",
+                    error!(
+                        "Processor {:#?} process failed: {}",
                         processor,
                         result.err().unwrap()
                     );
