@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use tracing::warn;
 
 use crate::source::Source;
 
@@ -42,7 +43,14 @@ pub struct ResourceNameRegexpMatcher {
 
 impl SourceMatcher for ResourceNameRegexpMatcher {
     fn matches(&self, source: &Source) -> bool {
-        let re = regex::Regex::new(&self.regexp).unwrap();
-        re.is_match(&source.resource_name)
+        let re = regex::Regex::new(&self.regexp);
+        match re {
+            Ok(re) => re.is_match(&source.resource_name),
+            Err(_) => {
+                warn!("Invalid regexp: {}", &self.regexp);
+                warn!("It will be ignored. Please check your config file");
+                false
+            }
+        }
     }
 }

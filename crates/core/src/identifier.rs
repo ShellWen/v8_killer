@@ -17,13 +17,7 @@ pub(crate) trait Identifier {
 
 impl Identifier for Vec<IdentifierEnum> {
     fn identify(&self) -> Option<NativePointer> {
-        for identifier in self {
-            let ptr = identifier.identify();
-            if ptr.is_some() {
-                return ptr;
-            }
-        }
-        None
+        self.iter().find_map(|identifier| identifier.identify())
     }
 }
 
