@@ -98,7 +98,7 @@ impl Default for Identifiers {
                         "?Utf8Length@String@v8@@QEBAHPEAVIsolate@2@@Z".to_string(),
                     ],
                 }
-            )],
+                )],
             V8_STRING_WRITE_UTF8: vec![
                 IdentifierEnum::SymbolIdentifier(SymbolIdentifier {
                     symbols: vec![
@@ -106,7 +106,7 @@ impl Default for Identifiers {
                         "?WriteUtf8@String@v8@@QEBAHPEAVIsolate@2@PEADHPEAHH@Z".to_string(),
                     ],
                 }
-            )],
+                )],
             V8_CONTEXT_GET_ISOLATE: vec![
                 IdentifierEnum::SymbolIdentifier(SymbolIdentifier {
                     symbols: vec![
@@ -114,7 +114,7 @@ impl Default for Identifiers {
                         "?GetIsolate@Context@v8@@QEAAPEAVIsolate@2@XZ".to_string(),
                     ],
                 }
-            )],
+                )],
             V8_STRING_NEW_FROM_UTF8: vec![
                 IdentifierEnum::SymbolIdentifier(SymbolIdentifier {
                     symbols: vec![
@@ -122,7 +122,7 @@ impl Default for Identifiers {
                         "?NewFromUtf8@String@v8@@SA?AV?$MaybeLocal@VString@v8@@@2@PEAVIsolate@2@PEBDW4NewStringType@2@H@Z".to_string(),
                     ],
                 }
-            )],
+                )],
         }
     }
 }

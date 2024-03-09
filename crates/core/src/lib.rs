@@ -68,7 +68,7 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
 fn init() {
     tracing_subscriber::fmt()
         .with_timer(uptime())
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(Level::DEBUG)
         .init();
 
     // Fix no output in the Windows GUI subsystem programs
