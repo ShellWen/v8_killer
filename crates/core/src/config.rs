@@ -23,7 +23,7 @@ pub(crate) struct Config {
 }
 
 pub(crate) trait ReadFromFile {
-    fn load_from_toml(file_path: &Path) -> Config;
+    fn load_from_toml(file_path: &Path) -> Self;
 }
 
 impl ReadFromFile for Config {
