@@ -148,8 +148,8 @@ pub(crate) fn string_from_local_string(
 ) -> String {
     unsafe {
         let length = v8_string_utf8_length(local_string, isolate);
-        // 我也不知道为什么要 +1，但是不 +1 的话就有可能 SIGSEGV ¯\_(ツ)_/¯
-        // 反正不可能是因为 \0 的问题
+        // I don't know why +1 is needed, but without +1, it may SIGSEGV ¯\_(ツ)_/¯
+        // Anyway, it's not because of \0
         let mut buffer: Vec<c_char> = vec![0; length + 1];
         v8_string_write_utf8(
             local_string,
