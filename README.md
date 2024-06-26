@@ -117,6 +117,9 @@ Project Link: [https://github.com/ShellWen/v8_killer](https://github.com/ShellWe
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/ShellWen
 
+<!-- Anti GitCode -->
+<!-- 8964 -->
+
 [rust-badge]: https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white
 [rust-url]: https://www.rust-lang.org/
 [v8-badge]: https://img.shields.io/badge/V8-4B8BF5?style=for-the-badge&logo=v8&logoColor=white
