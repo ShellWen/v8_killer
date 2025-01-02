@@ -1,49 +1,20 @@
 use tracing::*;
 
-use std::error::Error;
-use std::ffi::OsStr;
-
-pub fn default_lib_filename<'a>() -> Result<&'a str, Box<dyn Error>> {
+pub fn default_lib_filename() -> &'static str {
     #[cfg(target_os = "linux")]
-    return Ok("libv8_killer_core.so");
+    return "libv8_killer_core.so";
 
     #[cfg(target_os = "windows")]
-    return Ok("v8_killer_core.dll");
+    return "v8_killer_core.dll";
 
     #[cfg(target_os = "macos")]
-    return Ok("libv8_killer_core.dylib");
+    return "libv8_killer_core.dylib";
 
-    // 默认情况，如果没有匹配的操作系统，则返回一个合适的默认值
-    #[allow(unreachable_code)]
-    Err("Unsupported platform".into())
-}
-
-#[cfg(target_os = "linux")]
-pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
-    use std::process::Command;
-    use std::process::ExitStatus;
-    use std::process::Stdio;
-
-    let mut child = Command::new(executable)
-        .args(args)
-        .env("LD_PRELOAD", lib_path)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .expect("Failed to start command");
-
-    let status: ExitStatus = child.wait().expect("Failed to wait for child process");
-
-    if status.success() {
-        info!("Command executed successfully");
-    } else {
-        error!("Command failed with exit code: {:?}", status.code());
-    }
+    // unsupported target_os leads to a compile-time error
 }
 
 #[cfg(target_os = "windows")]
-pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
+fn launch_with_remote_thread_inject(executable: &str, args: &[&str], lib_path: &str) {
     use std::ffi::c_void;
     use windows::core::PWSTR;
     use windows::core::{s, w};
@@ -155,20 +126,21 @@ pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
     }
 }
 
-#[cfg(target_os = "macos")]
-pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
+fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) {
     use std::process::Command;
     use std::process::ExitStatus;
     use std::process::Stdio;
 
-    let mut child = Command::new(executable)
+    let mut command = Command::new(executable);
+    command
         .args(args)
-        .env("DYLD_INSERT_LIBRARIES", lib_path)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .expect("Failed to start command");
+        .stderr(Stdio::inherit());
+    for (key, value) in env {
+        command.env(key, value);
+    }
+    let mut child = command.spawn().expect("Failed to start command");
 
     let status: ExitStatus = child.wait().expect("Failed to wait for child process");
 
@@ -179,8 +151,13 @@ pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
     }
 }
 
-// 非以上系统
-#[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
-pub fn launch(lib_path: &str, executable: &str, args: &[&str]) {
-    error!("Unsupported platform.");
+pub fn launch(executable: &str, args: &[&str], lib_path: &str) {
+    #[cfg(target_os = "windows")]
+    launch_with_remote_thread_inject(executable, args, lib_path);
+    #[cfg(target_os = "linux")]
+    launch_with_env(executable, args, &[("LD_PRELOAD", lib_path)]);
+    #[cfg(target_os = "macos")]
+    launch_with_env(executable, args, &[("DYLD_INSERT_LIBRARIES", lib_path)]);
+
+    unreachable!("Unsupported platform.");
 }

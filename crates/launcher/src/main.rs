@@ -31,12 +31,8 @@ fn main() {
     }
     let lib_filename = if let Some(lib_name) = args.lib_name {
         lib_name
-    } else if let Ok(lib_name) = default_lib_filename() {
-        lib_name.to_owned()
     } else {
-        error!("Can't get default dynamic library name, your platform may not be supported.");
-        error!("You can try to specify the dynamic library manually by setting the `--lib-name` argument.");
-        std::process::exit(1)
+        default_lib_filename().to_owned()
     };
     let lib_path = current_exe().unwrap().parent().unwrap().join(lib_filename);
     let lib_path_str = lib_path.to_str().unwrap();
@@ -44,5 +40,6 @@ fn main() {
     info!("Executable: {}", args.executable);
     info!("Args: {:?}", args.arguments);
     info!("Core lib path: {}", lib_path_str);
-    launch(lib_path_str, &args.executable, args.arguments.as_slice());
+    let command_args: Vec<&str> = args.arguments.iter().map(String::as_str).collect();
+    launch(&args.executable, command_args.as_slice(), lib_path_str);
 }
