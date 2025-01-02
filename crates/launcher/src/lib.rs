@@ -48,7 +48,7 @@ fn launch_with_remote_thread_inject(executable: &str, args: &[&str], lib_path: &
             "\"{}\" {}",
             executable,
             args.iter()
-                .map(|arg| arg.to_string_lossy().into_owned())
+                .map(|arg| arg.to_string())
                 // .map(|arg| format!("\"{}\"", arg))
                 .collect::<Vec<String>>()
                 .join(" ")
