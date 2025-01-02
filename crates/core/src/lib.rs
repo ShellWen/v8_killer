@@ -7,12 +7,10 @@ use once_cell::sync::Lazy;
 use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
 
+use crate::config::{Config, ReadFromFile};
 use crate::core::process_script;
+use crate::identifier::Symbols;
 use crate::v8_sys::{V8Context, V8Source};
-use crate::{
-    config::{Config, ReadFromFile},
-    identifier::Identifier,
-};
 
 mod config;
 mod core;
@@ -41,6 +39,12 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
             Default::default()
         }
     }
+});
+
+static SYMBOLS: Lazy<Symbols> = Lazy::new(|| {
+    let symbols = Symbols::from_identifiers(&CONFIG.identifiers);
+    info!("Symbols: {symbols:#?}");
+    symbols
 });
 
 // v8::ScriptCompiler::CompileFunctionInternal(v8::Local<v8::Context>, v8::ScriptCompiler::Source*, unsigned long, v8::Local<v8::String>*, unsigned long, v8::Local<v8::Object>*, v8::ScriptCompiler::CompileOptions, v8::ScriptCompiler::NoCacheReason, v8::Local<v8::ScriptOrModule>*)
@@ -86,10 +90,8 @@ fn init() {
 
     interceptor.begin_transaction();
 
-    let v8_script_compiler_compile_function_internal = CONFIG
-        .identifiers
-        .V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL
-        .identify();
+    let v8_script_compiler_compile_function_internal =
+        SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL;
 
     match v8_script_compiler_compile_function_internal {
         None => {

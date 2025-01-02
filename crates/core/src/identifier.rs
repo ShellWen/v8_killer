@@ -1,5 +1,34 @@
 use frida_gum::{Module, NativePointer};
 use serde::Deserialize;
+use tracing::debug;
+
+#[allow(non_snake_case)]
+#[derive(Debug)]
+pub(crate) struct Symbols {
+    pub(crate) V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL: Option<NativePointer>,
+    pub(crate) V8_STRING_UTF8LENGTH: Option<NativePointer>,
+    pub(crate) V8_STRING_WRITE_UTF8: Option<NativePointer>,
+    pub(crate) V8_CONTEXT_GET_ISOLATE: Option<NativePointer>,
+    pub(crate) V8_STRING_NEW_FROM_UTF8: Option<NativePointer>,
+}
+
+// Bypass check for `Send` and `Sync` traits
+unsafe impl Sync for Symbols {}
+unsafe impl Send for Symbols {}
+
+impl Symbols {
+    pub(crate) fn from_identifiers(identifiers: &Identifiers) -> Self {
+        Symbols {
+            V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL: identifiers
+                .V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL
+                .identify(),
+            V8_STRING_UTF8LENGTH: identifiers.V8_STRING_UTF8LENGTH.identify(),
+            V8_STRING_WRITE_UTF8: identifiers.V8_STRING_WRITE_UTF8.identify(),
+            V8_CONTEXT_GET_ISOLATE: identifiers.V8_CONTEXT_GET_ISOLATE.identify(),
+            V8_STRING_NEW_FROM_UTF8: identifiers.V8_STRING_NEW_FROM_UTF8.identify(),
+        }
+    }
+}
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
@@ -17,7 +46,14 @@ pub(crate) trait Identifier {
 
 impl Identifier for Vec<IdentifierEnum> {
     fn identify(&self) -> Option<NativePointer> {
-        self.iter().find_map(|identifier| identifier.identify())
+        self.iter()
+            .find_map(|identifier| match identifier.identify() {
+                Some(ptr) => {
+                    debug!("Identifier found: {:?}, by {:?}", ptr.0, identifier);
+                    Some(ptr)
+                }
+                None => None,
+            })
     }
 }
 
