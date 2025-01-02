@@ -138,7 +138,7 @@ pub fn launch(lib_path: &str, executable: &str, args: &[impl AsRef<OsStr>]) {
             None,
             0,
             LPTHREAD_START_ROUTINE::from(std::mem::transmute::<
-                _,
+                *const c_void,
                 unsafe extern "system" fn(*mut c_void) -> u32,
             >(load_library_address)),
             Some(remote_memory),
