@@ -151,13 +151,23 @@ fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) {
     }
 }
 
+#[allow(unreachable_code)]
 pub fn launch(executable: &str, args: &[&str], lib_path: &str) {
     #[cfg(target_os = "windows")]
-    launch_with_remote_thread_inject(executable, args, lib_path);
+    {
+        launch_with_remote_thread_inject(executable, args, lib_path);
+        return;
+    }
     #[cfg(target_os = "linux")]
-    launch_with_env(executable, args, &[("LD_PRELOAD", lib_path)]);
+    {
+        launch_with_env(executable, args, &[("LD_PRELOAD", lib_path)]);
+        return;
+    }
     #[cfg(target_os = "macos")]
-    launch_with_env(executable, args, &[("DYLD_INSERT_LIBRARIES", lib_path)]);
+    {
+        launch_with_env(executable, args, &[("DYLD_INSERT_LIBRARIES", lib_path)]);
+        return;
+    }
 
     unreachable!("Unsupported platform.");
 }
