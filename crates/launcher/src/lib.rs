@@ -126,6 +126,7 @@ fn launch_with_remote_thread_inject(executable: &str, args: &[&str], lib_path: &
     }
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) {
     use std::process::Command;
     use std::process::ExitStatus;
