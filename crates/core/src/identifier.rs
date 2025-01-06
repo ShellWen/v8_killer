@@ -5,7 +5,7 @@ use tracing::debug;
 #[allow(non_snake_case)]
 #[derive(Debug)]
 pub(crate) struct Symbols {
-    pub(crate) V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL: Option<NativePointer>,
+    pub(crate) V8_SCRIPT_COMPILER_COMPILE_FUNCTION: Option<NativePointer>,
     pub(crate) V8_STRING_UTF8LENGTH: Option<NativePointer>,
     pub(crate) V8_STRING_WRITE_UTF8: Option<NativePointer>,
     pub(crate) V8_CONTEXT_GET_ISOLATE: Option<NativePointer>,
@@ -19,8 +19,8 @@ unsafe impl Send for Symbols {}
 impl Symbols {
     pub(crate) fn from_identifiers(identifiers: &Identifiers) -> Self {
         Symbols {
-            V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL: identifiers
-                .V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL
+            V8_SCRIPT_COMPILER_COMPILE_FUNCTION: identifiers
+                .V8_SCRIPT_COMPILER_COMPILE_FUNCTION
                 .identify(),
             V8_STRING_UTF8LENGTH: identifiers.V8_STRING_UTF8LENGTH.identify(),
             V8_STRING_WRITE_UTF8: identifiers.V8_STRING_WRITE_UTF8.identify(),
@@ -33,7 +33,7 @@ impl Symbols {
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
 pub(crate) struct Identifiers {
-    pub(crate) V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL: Vec<IdentifierEnum>,
+    pub(crate) V8_SCRIPT_COMPILER_COMPILE_FUNCTION: Vec<IdentifierEnum>,
     pub(crate) V8_STRING_UTF8LENGTH: Vec<IdentifierEnum>,
     pub(crate) V8_STRING_WRITE_UTF8: Vec<IdentifierEnum>,
     pub(crate) V8_CONTEXT_GET_ISOLATE: Vec<IdentifierEnum>,
@@ -111,13 +111,16 @@ impl Identifier for RvaIdentifier {
 impl Default for Identifiers {
     fn default() -> Self {
         Identifiers {
-            V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL: vec![
+            V8_SCRIPT_COMPILER_COMPILE_FUNCTION: vec![
                 IdentifierEnum::SymbolIdentifier(SymbolIdentifier {
                     symbols: vec![
                         "_ZN2v814ScriptCompiler23CompileFunctionInternalENS_5LocalINS_7ContextEEEPNS0_6SourceEmPNS1_INS_6StringEEEmPNS1_INS_6ObjectEEENS0_14CompileOptionsENS0_13NoCacheReasonEPNS1_INS_14ScriptOrModuleEEE"
                             .to_string(),
                         "?CompileFunctionInternal@ScriptCompiler@v8@@CA?AV?$MaybeLocal@VFunction@v8@@@2@V?$Local@VContext@v8@@@2@PEAVSource@12@_KQEAV?$Local@VString@v8@@@2@2QEAV?$Local@VObject@v8@@@2@W4CompileOptions@12@W4NoCacheReason@12@PEAV?$Local@VScriptOrModule@v8@@@2@@Z"
                             .to_string(),
+                        // fallback for newer v8 versions
+                        "_ZN2v814ScriptCompiler15CompileFunctionENS_5LocalINS_7ContextEEEPNS0_6SourceEmPNS1_INS_6StringEEEmPNS1_INS_6ObjectEEENS0_14CompileOptionsENS0_13NoCacheReasonE".to_string(),
+                        "?CompileFunction@ScriptCompiler@v8@@SA?AV?$MaybeLocal@VFunction@v8@@@2@V?$Local@VContext@v8@@@2@PEAVSource@12@_KQEAV?$Local@VString@v8@@@2@2QEAV?$Local@VObject@v8@@@2@W4CompileOptions@12@W4NoCacheReason@12@@Z".to_string(),
                     ],
                 })
             ],

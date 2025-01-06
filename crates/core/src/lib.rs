@@ -48,9 +48,11 @@ static SYMBOLS: Lazy<Symbols> = Lazy::new(|| {
 });
 
 // v8::ScriptCompiler::CompileFunctionInternal(v8::Local<v8::Context>, v8::ScriptCompiler::Source*, unsigned long, v8::Local<v8::String>*, unsigned long, v8::Local<v8::Object>*, v8::ScriptCompiler::CompileOptions, v8::ScriptCompiler::NoCacheReason, v8::Local<v8::ScriptOrModule>*)
-struct V8ScriptCompilerCompileFunctionInternalListener;
+// fallback for newer v8
+// v8::ScriptCompiler::CompileFunction(v8::Local<v8::Context>, v8::ScriptCompiler::Source*, unsigned long, v8::Local<v8::String>*, unsigned long, v8::Local<v8::Object>*, v8::ScriptCompiler::CompileOptions, v8::ScriptCompiler::NoCacheReason)
+struct V8ScriptCompilerCompileFunctionListener;
 
-impl InvocationListener for V8ScriptCompilerCompileFunctionInternalListener {
+impl InvocationListener for V8ScriptCompilerCompileFunctionListener {
     fn on_enter(&mut self, frida_context: InvocationContext) {
         unsafe {
             #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -119,25 +121,18 @@ fn init() {
 
     interceptor.begin_transaction();
 
-    let v8_script_compiler_compile_function_internal =
-        SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_FUNCTION_INTERNAL;
+    let v8_script_compiler_compile_function = SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_FUNCTION;
 
-    match v8_script_compiler_compile_function_internal {
+    match v8_script_compiler_compile_function {
         None => {
-            error!("v8_script_compiler_compile_function_internal not found");
+            error!("v8_script_compiler_compile_function not found");
             error!("source processing will not work properly");
         }
         Some(addr) => {
-            info!(
-                "v8_script_compiler_compile_function_internal found: {:?}",
-                addr.0
-            );
-            let mut v8_script_compiler_compile_function_internal_listener =
-                V8ScriptCompilerCompileFunctionInternalListener;
-            interceptor.attach(
-                addr,
-                &mut v8_script_compiler_compile_function_internal_listener,
-            );
+            info!("v8_script_compiler_compile_function found: {:?}", addr.0);
+            let mut v8_script_compiler_compile_function_listener =
+                V8ScriptCompilerCompileFunctionListener;
+            interceptor.attach(addr, &mut v8_script_compiler_compile_function_listener);
         }
     }
 
