@@ -3,19 +3,20 @@ use frida_gum::interceptor::{InvocationContext, InvocationListener};
 use frida_gum::{interceptor::Interceptor, Gum};
 use once_cell::sync::Lazy;
 use std::path::Path;
-use std::process;
 use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
 
 use crate::config::{Config, ReadFromFile};
 use crate::core::process_script;
 use crate::identifier::Symbols;
+use crate::pid_span::pid_span;
 use crate::v8_sys::{V8Context, V8Source};
 
 mod config;
 mod core;
 mod identifier;
 mod matcher;
+mod pid_span;
 mod processor;
 mod source;
 mod v8_sys;
@@ -54,6 +55,9 @@ struct V8ScriptCompilerCompileFunctionListener;
 
 impl InvocationListener for V8ScriptCompilerCompileFunctionListener {
     fn on_enter(&mut self, frida_context: InvocationContext) {
+        let pid_span = pid_span();
+        let _enter = pid_span.enter();
+
         unsafe {
             #[cfg(any(target_os = "linux", target_os = "macos"))]
             let context = frida_context.arg(0) as *const V8Context;
@@ -70,40 +74,14 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionListener {
     fn on_leave(&mut self, _frida_context: InvocationContext) {}
 }
 
-#[cfg(target_os = "linux")]
-fn read_host_pid() -> Option<u32> {
-    let status = std::fs::read_to_string("/proc/self/status").ok()?;
-    // format:
-    // NSpid:  1381510 1
-    let mut nspid_line = status
-        .lines()
-        .find(|line| line.starts_with("NSpid"))?
-        .split_whitespace();
-    let nspid = nspid_line.nth(1)?.parse::<u32>().ok()?;
-    // if ns pid is None, it will return None
-    nspid_line.next()?;
-    Some(nspid)
-}
-
 #[ctor]
 fn init() {
     tracing_subscriber::fmt()
         .with_timer(uptime())
         .with_max_level(Level::DEBUG)
-        .event_format(tracing_subscriber::fmt::format::Format::default())
         .init();
 
-    let pid = process::id();
-    #[cfg(not(target_os = "linux"))]
-    let pid_span: Span = info_span!("process", pid);
-    #[cfg(target_os = "linux")]
-    let pid_span: Span = {
-        let host_pid = read_host_pid();
-        match host_pid {
-            Some(host_pid) => info_span!("process", pid, host_pid, in_sandbox = true),
-            None => info_span!("process", pid),
-        }
-    };
+    let pid_span = pid_span();
     let _enter = pid_span.enter();
 
     // Fix no output in the Windows GUI subsystem programs
