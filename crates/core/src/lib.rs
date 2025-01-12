@@ -3,8 +3,10 @@ use frida_gum::interceptor::{InvocationContext, InvocationListener};
 use frida_gum::{interceptor::Interceptor, Gum};
 use once_cell::sync::Lazy;
 use std::path::Path;
+use tracing::level_filters::LevelFilter;
 use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
+use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, ReadFromFile};
 use crate::core::process_script;
@@ -76,9 +78,14 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionListener {
 
 #[ctor]
 fn init() {
+    let filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+
     tracing_subscriber::fmt()
         .with_timer(uptime())
         .with_max_level(Level::DEBUG)
+        .with_env_filter(filter)
         .init();
 
     let pid_span = pid_span();

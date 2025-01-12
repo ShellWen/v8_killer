@@ -3,7 +3,9 @@ use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
 
 use std::env::current_exe;
-
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::filter::Directive;
+use tracing_subscriber::EnvFilter;
 use v8_killer_launcher::{default_lib_filename, launch};
 
 /// A simple launcher/injector for V8 Killer
@@ -24,7 +26,13 @@ struct Arguments {
 }
 
 fn main() {
-    tracing_subscriber::fmt().with_timer(uptime()).init();
+    let filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::fmt()
+        .with_timer(uptime())
+        .with_env_filter(filter)
+        .init();
     let args = Arguments::parse();
     if let Some(config) = &args.config {
         std::env::set_var("V8_KILLER_CONFIG_FILE_PATH", config);
