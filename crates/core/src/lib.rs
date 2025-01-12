@@ -29,10 +29,11 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
     match config_file_path {
         Ok(config_file_path) => {
-            info!("V8_KILLER_CONFIG_FILE_PATH: {config_file_path}");
+            debug!("V8_KILLER_CONFIG_FILE_PATH: {config_file_path}");
             let path = Path::new(&config_file_path);
             let config = Config::load_from_toml(path);
-            info!("Read Config success: {config:#?}");
+            info!("Read config success");
+            debug!("Config: {config:#?}");
             config
         }
         Err(_) => {
@@ -46,7 +47,7 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
 
 static SYMBOLS: Lazy<Symbols> = Lazy::new(|| {
     let symbols = Symbols::from_identifiers(&CONFIG.identifiers);
-    info!("Symbols: {symbols:#?}");
+    debug!("Symbols: {symbols:#?}");
     symbols
 });
 
@@ -114,7 +115,6 @@ fn init() {
             error!("source processing will not work properly");
         }
         Some(addr) => {
-            info!("v8_script_compiler_compile_function found: {:?}", addr.0);
             let mut v8_script_compiler_compile_function_listener =
                 V8ScriptCompilerCompileFunctionListener;
             interceptor.attach(addr, &mut v8_script_compiler_compile_function_listener);

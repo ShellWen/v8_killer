@@ -146,9 +146,9 @@ fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) {
     let status: ExitStatus = child.wait().expect("Failed to wait for child process");
 
     if status.success() {
-        info!("Command executed successfully");
+        info!("Process exited successfully");
     } else {
-        error!("Command failed with exit code: {:?}", status.code());
+        error!("Process exited with code: {:?}", status.code());
     }
 }
 
