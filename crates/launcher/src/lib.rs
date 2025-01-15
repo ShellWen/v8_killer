@@ -1,4 +1,4 @@
-use tracing::*;
+use std::process::ExitStatus;
 
 pub fn default_lib_filename() -> &'static str {
     #[cfg(target_os = "linux")]
@@ -14,14 +14,20 @@ pub fn default_lib_filename() -> &'static str {
 }
 
 #[cfg(target_os = "windows")]
-fn launch_with_remote_thread_inject(executable: &str, args: &[&str], lib_path: &str) {
+fn launch_with_remote_thread_inject(executable: &str, args: &[&str], lib_path: &str) -> ExitStatus {
     use std::ffi::c_void;
+    use std::os::windows::process::ExitStatusExt;
+    use std::thread::sleep;
+    use std::time::Duration;
+    use tracing::*;
     use windows::core::PWSTR;
     use windows::core::{s, w};
+    use windows::Win32::Foundation::STILL_ACTIVE;
     use windows::Win32::Foundation::TRUE;
     use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
     use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
     use windows::Win32::System::Memory::{VirtualAllocEx, MEM_COMMIT, MEM_RESERVE, PAGE_READWRITE};
+    use windows::Win32::System::Threading::GetExitCodeProcess;
     use windows::Win32::System::Threading::{
         CreateProcessW, CreateRemoteThread, ResumeThread, WaitForSingleObject, CREATE_SUSPENDED,
         INFINITE, LPTHREAD_START_ROUTINE, PROCESS_INFORMATION,
@@ -123,13 +129,23 @@ fn launch_with_remote_thread_inject(executable: &str, args: &[&str], lib_path: &
         info!("--- Following is the original process output ---");
         ResumeThread(process_info.hThread);
         WaitForSingleObject(process_info.hProcess, INFINITE);
+        let mut exit_code: u32 = 0;
+        loop {
+            GetExitCodeProcess(process_info.hProcess, &mut exit_code)
+                .expect("GetExitCodeProcess failed");
+            if exit_code != STILL_ACTIVE.0.into() {
+                break;
+            }
+            warn!("Process is still running even after WaitForSingleObject. This should not happen. Waiting for 500ms.");
+            sleep(Duration::from_millis(500)); // Why 500ms? Because I'm lazy
+        }
+        ExitStatus::from_raw(exit_code)
     }
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) {
+fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) -> ExitStatus {
     use std::process::Command;
-    use std::process::ExitStatus;
     use std::process::Stdio;
 
     let mut command = Command::new(executable);
@@ -143,31 +159,22 @@ fn launch_with_env(executable: &str, args: &[&str], env: &[(&str, &str)]) {
     }
     let mut child = command.spawn().expect("Failed to start command");
 
-    let status: ExitStatus = child.wait().expect("Failed to wait for child process");
-
-    if status.success() {
-        info!("Process exited successfully");
-    } else {
-        error!("Process exited with code: {:?}", status.code());
-    }
+    child.wait().expect("Failed to wait for child process")
 }
 
 #[allow(unreachable_code)]
-pub fn launch(executable: &str, args: &[&str], lib_path: &str) {
+pub fn launch(executable: &str, args: &[&str], lib_path: &str) -> ExitStatus {
     #[cfg(target_os = "windows")]
     {
-        launch_with_remote_thread_inject(executable, args, lib_path);
-        return;
+        return launch_with_remote_thread_inject(executable, args, lib_path);
     }
     #[cfg(target_os = "linux")]
     {
-        launch_with_env(executable, args, &[("LD_PRELOAD", lib_path)]);
-        return;
+        return launch_with_env(executable, args, &[("LD_PRELOAD", lib_path)]);
     }
     #[cfg(target_os = "macos")]
     {
-        launch_with_env(executable, args, &[("DYLD_INSERT_LIBRARIES", lib_path)]);
-        return;
+        return launch_with_env(executable, args, &[("DYLD_INSERT_LIBRARIES", lib_path)]);
     }
 
     unreachable!("Unsupported platform.");

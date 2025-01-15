@@ -3,8 +3,8 @@ use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
 
 use std::env::current_exe;
+use std::process::exit;
 use tracing::level_filters::LevelFilter;
-use tracing_subscriber::filter::Directive;
 use tracing_subscriber::EnvFilter;
 use v8_killer_launcher::{default_lib_filename, launch};
 
@@ -49,5 +49,11 @@ fn main() {
     info!("Args: {:?}", args.arguments);
     info!("Core lib path: {}", lib_path_str);
     let command_args: Vec<&str> = args.arguments.iter().map(String::as_str).collect();
-    launch(&args.executable, command_args.as_slice(), lib_path_str);
+    let exit_status = launch(&args.executable, command_args.as_slice(), lib_path_str);
+    if exit_status.success() {
+        info!("Process exited successfully");
+    } else {
+        error!("Process exited with code: {:?}", exit_status.code());
+        exit(exit_status.code().unwrap_or(1));
+    }
 }
