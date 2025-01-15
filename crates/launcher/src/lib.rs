@@ -23,7 +23,6 @@ mod windows {
     use tracing::*;
     use windows::core::PWSTR;
     use windows::core::{s, w};
-    use windows::Win32::Foundation::FARPROC;
     use windows::Win32::Foundation::STILL_ACTIVE;
     use windows::Win32::Foundation::TRUE;
     use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
@@ -158,7 +157,7 @@ mod windows {
                 GetExitCodeProcess(process_info.hProcess, &mut exit_code)
                     .expect("GetExitCodeProcess failed");
             }
-            if exit_code != STILL_ACTIVE.0.into() {
+            if exit_code != STILL_ACTIVE.0 as u32 {
                 break;
             }
             warn!("Process is still running even after WaitForSingleObject. This should not happen. Waiting for 500ms.");
