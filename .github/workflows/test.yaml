@@ -1,0 +1,25 @@
+on: [ push, pull_request ]
+
+name: Test
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Run non-macOS tests
+        if: matrix.os != 'macos-latest'
+        run: cargo test --verbose
+
+      - name: Run macOS tests
+        if: matrix.os == 'macos-latest'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          cargo test --verbose --target aarch64-apple-darwin
+          cargo test --verbose --target x86_64-apple-darwin
