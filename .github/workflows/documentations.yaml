@@ -29,13 +29,18 @@ jobs:
         uses: actions/configure-pages@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.11
-          cache: 'pip'
-      - name: Run pip install
-        run: pip install -r requirements.txt
+          python-version: 3.13
+          cache: 'pipenv'
+          cache-dependency-path: 'docs/Pipfile.lock'
+      - name: Install pipenv
+        #        run: pip install pipenv
+        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
+        working-directory: './docs'
+      - name: Run pipenv install --dev
+        run: pipenv install --dev
         working-directory: './docs'
       - name: Build docs
-        run: mkdocs build
+        run: pipenv run mkdocs build
         working-directory: './docs'
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
