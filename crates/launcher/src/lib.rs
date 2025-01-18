@@ -195,7 +195,7 @@ mod windows {
         #[test]
         fn get_pwstr_length_calculates_correct_length() {
             let mut v = vec![104, 101, 108, 108, 111, 0];
-            let mut input = v.as_mut_slice();
+            let input = v.as_mut_slice();
             let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 5);
         }
@@ -203,7 +203,7 @@ mod windows {
         #[test]
         fn get_pwstr_length_handles_empty_pwstr() {
             let mut v = vec![0];
-            let mut input = v.as_mut_slice();
+            let input = v.as_mut_slice();
             let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 0);
         }
@@ -211,7 +211,7 @@ mod windows {
         #[test]
         fn get_pwstr_length_calculates_length_of_non_empty_pwstr() {
             let mut v = vec![104, 101, 108, 108, 111, 0];
-            let mut input = v.as_mut_slice();
+            let input = v.as_mut_slice();
             let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 5);
         }
@@ -219,7 +219,7 @@ mod windows {
         #[test]
         fn get_pwstr_length_returns_zero_for_empty_pwstr() {
             let mut v = vec![0];
-            let mut input = v.as_mut_slice();
+            let input = v.as_mut_slice();
             let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 0);
         }
@@ -227,7 +227,7 @@ mod windows {
         #[test]
         fn get_pwstr_length_handles_pwstr_with_only_null_terminator() {
             let mut v = vec![0, 0, 0];
-            let mut input = v.as_mut_slice();
+            let input = v.as_mut_slice();
             let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 0);
         }
@@ -235,7 +235,7 @@ mod windows {
         #[test]
         fn get_pwstr_length_handles_pwstr_with_multiple_null_terminators() {
             let mut v = vec![104, 101, 108, 108, 111, 0, 0, 0];
-            let mut input = v.as_mut_slice();
+            let input = v.as_mut_slice();
             let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 5);
         }
