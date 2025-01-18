@@ -1,3 +1,4 @@
+use crate::GUM;
 use frida_gum::{Module, NativePointer};
 use serde::Deserialize;
 use tracing::debug;
@@ -83,7 +84,7 @@ pub(crate) struct SymbolIdentifier {
 impl Identifier for SymbolIdentifier {
     fn identify(&self) -> Option<NativePointer> {
         for symbol in &self.symbols {
-            let ptr = Module::find_export_by_name(None, symbol);
+            let ptr = Module::find_global_export_by_name(symbol);
             if ptr.is_some() {
                 return ptr;
             }
@@ -100,7 +101,8 @@ pub(crate) struct RvaIdentifier {
 
 impl Identifier for RvaIdentifier {
     fn identify(&self) -> Option<NativePointer> {
-        let base_address = Module::find_base_address(&self.module_name);
+        let m = Module::load(&GUM, self.module_name.as_str());
+        let base_address = m.range().base_address();
         if base_address.is_null() {
             return None;
         }

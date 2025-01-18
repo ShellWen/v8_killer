@@ -23,7 +23,7 @@ mod processor;
 mod source;
 mod v8_sys;
 
-static GUM: Lazy<Gum> = Lazy::new(|| unsafe { Gum::obtain() });
+static GUM: Lazy<Gum> = Lazy::new(Gum::obtain);
 
 static CONFIG: Lazy<Config> = Lazy::new(|| {
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
@@ -117,7 +117,11 @@ fn init() {
         Some(addr) => {
             let mut v8_script_compiler_compile_function_listener =
                 V8ScriptCompilerCompileFunctionListener;
-            interceptor.attach(addr, &mut v8_script_compiler_compile_function_listener);
+            interceptor.attach(addr, &mut v8_script_compiler_compile_function_listener).map_err(|e| {
+                error!(
+                    "Failed to attach V8ScriptCompilerCompileFunctionListener to v8_script_compiler_compile_function, error: {e}"
+                )
+            }).unwrap();
         }
     }
 
