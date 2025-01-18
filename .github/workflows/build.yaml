@@ -12,6 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build for Windows/Linux
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
         run: cargo build --verbose --release

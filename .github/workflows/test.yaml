@@ -10,9 +10,8 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
-
+      - uses: Swatinem/rust-cache@v2
       - name: Run non-macOS tests
         if: matrix.os != 'macos-latest'
         run: cargo test --verbose
