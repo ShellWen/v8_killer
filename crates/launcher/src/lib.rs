@@ -45,7 +45,7 @@ mod windows {
     fn get_pwstr_length(pwstr: PWSTR) -> usize {
         let ptr = pwstr.0;
         let mut len = 0usize;
-        while unsafe { *ptr.offset(len as isize) } != 0 {
+        while unsafe { *ptr.add(len) } != 0 {
             len += 1;
         }
         len
