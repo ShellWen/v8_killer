@@ -1,3 +1,8 @@
+use crate::config::{Config, ReadFromFile};
+use crate::core::process_script;
+use crate::identifier::Symbols;
+use crate::pid_span::pid_span;
+use crate::v8_sys::{V8Context, V8Source};
 use ctor::ctor;
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
 use frida_gum::{interceptor::Interceptor, Gum};
@@ -7,12 +12,6 @@ use tracing::level_filters::LevelFilter;
 use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
 use tracing_subscriber::EnvFilter;
-
-use crate::config::{Config, ReadFromFile};
-use crate::core::process_script;
-use crate::identifier::Symbols;
-use crate::pid_span::pid_span;
-use crate::v8_sys::{V8Context, V8Source};
 
 mod config;
 mod core;
@@ -96,9 +95,9 @@ fn init() {
     // See also: [#11](https://github.com/ShellWen/v8_killer/issues/11)
     #[cfg(target_os = "windows")]
     unsafe {
-        use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+        use windows_sys::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
 
-        let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+        AttachConsole(ATTACH_PARENT_PROCESS);
     }
 
     info!("V8 Killer has been injected and started!");

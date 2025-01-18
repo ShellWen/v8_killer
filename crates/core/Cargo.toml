@@ -18,7 +18,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.59", features = [
+windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_System_Console",
 ] }

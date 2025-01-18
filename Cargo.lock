@@ -1733,7 +1733,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
- "windows",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
