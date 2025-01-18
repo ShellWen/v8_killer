@@ -43,8 +43,9 @@ mod windows {
     }
 
     fn get_pwstr_length(pwstr: PWSTR) -> usize {
+        let ptr = pwstr.0;
         let mut len = 0usize;
-        while unsafe { *pwstr.0.offset(len.try_into().unwrap()) } != 0 {
+        while unsafe { *ptr.offset(len as isize) } != 0 {
             len += 1;
         }
         len
@@ -173,63 +174,63 @@ mod windows {
         #[test]
         fn utf16_vec_from_str_converts_ascii_string() {
             let input = String::from("hello");
-            let expected = vec![104, 101, 108, 108, 111, 0];
+            let expected: [u16; 6] = [104, 101, 108, 108, 111, 0];
             assert_eq!(utf16_vec_from_str(input), expected);
         }
 
         #[test]
         fn utf16_vec_from_str_converts_unicode_string() {
             let input = String::from("こんにちは");
-            let expected = vec![12371, 12435, 12395, 12385, 12399, 0];
+            let expected: [u16; 6] = [12371, 12435, 12395, 12385, 12399, 0];
             assert_eq!(utf16_vec_from_str(input), expected);
         }
 
         #[test]
         fn utf16_vec_from_str_handles_empty_string() {
             let input = String::from("");
-            let expected = vec![0];
+            let expected: [u16; 1] = [0];
             assert_eq!(utf16_vec_from_str(input), expected);
         }
 
         #[test]
         fn get_pwstr_length_calculates_correct_length() {
-            let input = vec![104, 101, 108, 108, 111, 0];
-            let pwstr = PWSTR::from_raw(input.as_ptr() as *mut u16);
+            let input: [u16; 6] = [104, 101, 108, 108, 111, 0];
+            let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 5);
         }
 
         #[test]
         fn get_pwstr_length_handles_empty_pwstr() {
-            let input = vec![0];
-            let pwstr = PWSTR::from_raw(input.as_ptr() as *mut u16);
+            let input: [u16; 1] = [0];
+            let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 0);
         }
 
         #[test]
         fn get_pwstr_length_calculates_length_of_non_empty_pwstr() {
-            let input = vec![104, 101, 108, 108, 111, 0];
-            let pwstr = PWSTR::from_raw(input.as_ptr() as *mut u16);
+            let input: [u16; 6] = [104, 101, 108, 108, 111, 0];
+            let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 5);
         }
 
         #[test]
         fn get_pwstr_length_returns_zero_for_empty_pwstr() {
-            let input = vec![0];
-            let pwstr = PWSTR::from_raw(input.as_ptr() as *mut u16);
+            let input: [u16; 1] = [0];
+            let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 0);
         }
 
         #[test]
         fn get_pwstr_length_handles_pwstr_with_only_null_terminator() {
-            let input = vec![0, 0, 0];
-            let pwstr = PWSTR::from_raw(input.as_ptr() as *mut u16);
+            let input: [u16; 3] = [0, 0, 0];
+            let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 0);
         }
 
         #[test]
         fn get_pwstr_length_handles_pwstr_with_multiple_null_terminators() {
-            let input = vec![104, 101, 108, 108, 111, 0, 0, 0];
-            let pwstr = PWSTR::from_raw(input.as_ptr() as *mut u16);
+            let input: [u16; 8] = [104, 101, 108, 108, 111, 0, 0, 0];
+            let pwstr = PWSTR::from_raw(input.as_mut_ptr());
             assert_eq!(get_pwstr_length(pwstr), 5);
         }
     }
