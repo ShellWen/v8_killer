@@ -24,7 +24,6 @@ mod windows {
     use windows::core::PWSTR;
     use windows::core::{s, w};
     use windows::Win32::Foundation::STILL_ACTIVE;
-    use windows::Win32::Foundation::TRUE;
     use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
     use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
     use windows::Win32::System::Memory::{VirtualAllocEx, MEM_COMMIT, MEM_RESERVE, PAGE_READWRITE};
@@ -76,10 +75,10 @@ mod windows {
         unsafe {
             CreateProcessW(
                 None,
-                args_pwstr,
+                Some(args_pwstr),
                 None,
                 None,
-                TRUE,
+                true,
                 CREATE_SUSPENDED,
                 None,
                 None,
