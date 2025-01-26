@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
+[[bin]]
+name = "v8_killer_launcher"
+path = "src/main.rs"
+
 [dependencies]
 clap = { workspace = true }
 tracing = { workspace = true }
