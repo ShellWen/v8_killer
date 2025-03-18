@@ -35,7 +35,7 @@ jobs:
             target/aarch64-apple-darwin/release/v8_killer_launcher \
             target/x86_64-apple-darwin/release/v8_killer_launcher
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-release
           path: |
