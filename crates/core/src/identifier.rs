@@ -18,6 +18,18 @@ unsafe impl Sync for Symbols {}
 unsafe impl Send for Symbols {}
 
 impl Symbols {
+    pub(crate) fn is_complete(&self) -> bool {
+        [
+            self.V8_SCRIPT_COMPILER_COMPILE_FUNCTION,
+            self.V8_STRING_UTF8LENGTH,
+            self.V8_STRING_WRITE_UTF8,
+            self.V8_CONTEXT_GET_ISOLATE,
+            self.V8_STRING_NEW_FROM_UTF8,
+        ]
+        .iter()
+        .all(Option::is_some)
+    }
+
     pub(crate) fn from_identifiers(identifiers: &Identifiers) -> Self {
         Symbols {
             V8_SCRIPT_COMPILER_COMPILE_FUNCTION: identifiers
@@ -158,6 +170,30 @@ impl Default for Identifiers {
                     ],
                 }
                 )],
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn incomplete_symbols_disable_hooking() {
+        let pointer = Some(NativePointer(std::ptr::dangling_mut::<u8>().cast()));
+        for missing in 0..=5 {
+            let mut pointers = [pointer; 5];
+            if missing < pointers.len() {
+                pointers[missing] = None;
+            }
+            let symbols = Symbols {
+                V8_SCRIPT_COMPILER_COMPILE_FUNCTION: pointers[0],
+                V8_STRING_UTF8LENGTH: pointers[1],
+                V8_STRING_WRITE_UTF8: pointers[2],
+                V8_CONTEXT_GET_ISOLATE: pointers[3],
+                V8_STRING_NEW_FROM_UTF8: pointers[4],
+            };
+            assert_eq!(symbols.is_complete(), missing == 5);
         }
     }
 }

@@ -6,8 +6,8 @@ use crate::v8_sys::{V8Context, V8Source};
 use ctor::ctor;
 use frida_gum::interceptor::{InvocationContext, InvocationListener};
 use frida_gum::{interceptor::Interceptor, Gum};
-use once_cell::sync::Lazy;
 use std::path::Path;
+use std::sync::LazyLock;
 use tracing::level_filters::LevelFilter;
 use tracing::*;
 use tracing_subscriber::fmt::time::uptime;
@@ -22,9 +22,9 @@ mod processor;
 mod source;
 mod v8_sys;
 
-static GUM: Lazy<Gum> = Lazy::new(Gum::obtain);
+static GUM: LazyLock<Gum> = LazyLock::new(Gum::obtain);
 
-static CONFIG: Lazy<Config> = Lazy::new(|| {
+static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
     match config_file_path {
         Ok(config_file_path) => {
@@ -44,7 +44,7 @@ static CONFIG: Lazy<Config> = Lazy::new(|| {
     }
 });
 
-static SYMBOLS: Lazy<Symbols> = Lazy::new(|| {
+static SYMBOLS: LazyLock<Symbols> = LazyLock::new(|| {
     let symbols = Symbols::from_identifiers(&CONFIG.identifiers);
     debug!("Symbols: {symbols:#?}");
     symbols
@@ -76,7 +76,7 @@ impl InvocationListener for V8ScriptCompilerCompileFunctionListener {
     fn on_leave(&mut self, _frida_context: InvocationContext) {}
 }
 
-#[ctor]
+#[ctor(unsafe)]
 fn init() {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
@@ -102,6 +102,14 @@ fn init() {
 
     info!("V8 Killer has been injected and started!");
 
+    if !SYMBOLS.is_complete() {
+        error!(
+            "Required V8 symbols not found; source processing is disabled: {:#?}",
+            *SYMBOLS
+        );
+        return;
+    }
+
     let mut interceptor = Interceptor::obtain(&GUM);
 
     interceptor.begin_transaction();
@@ -114,9 +122,9 @@ fn init() {
             error!("source processing will not work properly");
         }
         Some(addr) => {
-            let mut v8_script_compiler_compile_function_listener =
-                V8ScriptCompilerCompileFunctionListener;
-            interceptor.attach(addr, &mut v8_script_compiler_compile_function_listener).map_err(|e| {
+            // Gum retains a pointer to the listener for the lifetime of the hook.
+            let listener = Box::leak(Box::new(V8ScriptCompilerCompileFunctionListener));
+            interceptor.attach(addr, listener).map_err(|e| {
                 error!(
                     "Failed to attach V8ScriptCompilerCompileFunctionListener to v8_script_compiler_compile_function, error: {e}"
                 )

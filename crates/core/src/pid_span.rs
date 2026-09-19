@@ -1,8 +1,8 @@
-use once_cell::sync::Lazy;
 use std::process;
+use std::sync::LazyLock;
 use tracing::{info_span, Span};
 
-static PID_SPAN: Lazy<Span> = Lazy::new(|| {
+static PID_SPAN: LazyLock<Span> = LazyLock::new(|| {
     let pid = process::id();
     #[cfg(not(target_os = "linux"))]
     let pid_span: Span = info_span!("process", pid);
