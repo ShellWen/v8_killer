@@ -16,3 +16,8 @@ target/
 
 # Local Scripts
 scripts/local/**
+
+.venv/
+__pycache__/
+*.py[cod]
+/docs/site/
