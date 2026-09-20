@@ -9,6 +9,20 @@ on:
 name: Test
 
 jobs:
+  node:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 26]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: cargo build --locked
+      - run: python3 scripts/test-node.py target/debug/v8_killer_launcher "$(command -v node)"
   test:
     runs-on: ${{ matrix.os }}
     strategy:

@@ -24,6 +24,23 @@ target/native-tests/v8_killer_abi_test
 
 With Visual Studio, run `target/native-tests/Release/v8_killer_abi_test.exe` instead.
 
+## Node.js compatibility
+
+Linux x86-64 injection has been verified with Node.js 22.23.2, 26.5.0 and 26.8.1. CommonJS `.cjs` and `.js` files work with Node's default execution options, including the default type-stripping setting. CommonJS imported from ESM is processed; ESM source itself uses `CompileModule` and is outside the current `CompileFunction` hook's scope.
+
+Node 26 removes `Context::GetIsolate`, `String::Utf8Length` and `String::WriteUtf8`. The fallback uses `Isolate::GetCurrent`, `Utf8LengthV2` and `WriteUtf8V2` with their own signatures (`size_t` lengths and the V2 flags/character-count argument order). Existing configured legacy identifiers retain priority. Missing required symbols still disable hooking.
+
+The ABI was checked against Node [v26.8.1 V8 headers](https://github.com/nodejs/node/tree/v26.8.1/deps/v8/include) and [API implementation](https://github.com/nodejs/node/blob/v26.8.1/deps/v8/src/api/api.cc): `Source` still begins with source and resource-name `Local` fields; `Local`'s stored representation is also the public API receiver representation, with either direct or indirect handles. No heap-object offsets are used. Windows x64 V2 symbol declarations were checked with Clang's MSVC target; Windows/macOS Node 26 injection has not been tested. Future releases require the same exported signatures and source prefix layout; their compatibility is not guaranteed.
+
+Run the UTF-8 regression against a built launcher and a chosen Node binary (Python 3 required):
+
+```sh
+python3 scripts/test-node.py target/debug/v8_killer_launcher /path/to/node
+python3 scripts/test-node.py target/release/v8_killer_launcher /path/to/node
+```
+
+It checks default `.js`/`.cjs` execution and ESM-to-CJS imports with a Unicode filename, Chinese text, emoji and embedded NUL. It also asserts that ESM source remains unprocessed.
+
 ## Develop the documentation
 
 The documentation uses MkDocs and [uv](https://docs.astral.sh/uv/getting-started/installation/). Python 3.14.7 is pinned in `docs/.python-version`; uv manages Python and an isolated environment for the documentation.

@@ -18,6 +18,9 @@ pub(crate) struct Symbols {
     pub(crate) V8_STRING_WRITE_UTF8: Option<NativePointer>,
     pub(crate) V8_CONTEXT_GET_ISOLATE: Option<NativePointer>,
     pub(crate) V8_STRING_NEW_FROM_UTF8: Option<NativePointer>,
+    pub(crate) V8_STRING_UTF8LENGTH_V2: Option<NativePointer>,
+    pub(crate) V8_STRING_WRITE_UTF8_V2: Option<NativePointer>,
+    pub(crate) V8_ISOLATE_GET_CURRENT: Option<NativePointer>,
 }
 
 // Bypass check for `Send` and `Sync` traits
@@ -28,9 +31,9 @@ impl Symbols {
     pub(crate) fn is_complete(&self) -> bool {
         [
             self.V8_SCRIPT_COMPILER_COMPILE_FUNCTION,
-            self.V8_STRING_UTF8LENGTH,
-            self.V8_STRING_WRITE_UTF8,
-            self.V8_CONTEXT_GET_ISOLATE,
+            self.V8_STRING_UTF8LENGTH.or(self.V8_STRING_UTF8LENGTH_V2),
+            self.V8_STRING_WRITE_UTF8.or(self.V8_STRING_WRITE_UTF8_V2),
+            self.V8_CONTEXT_GET_ISOLATE.or(self.V8_ISOLATE_GET_CURRENT),
             self.V8_STRING_NEW_FROM_UTF8,
         ]
         .iter()
@@ -46,6 +49,27 @@ impl Symbols {
             V8_STRING_WRITE_UTF8: identifiers.V8_STRING_WRITE_UTF8.identify(),
             V8_CONTEXT_GET_ISOLATE: identifiers.V8_CONTEXT_GET_ISOLATE.identify(),
             V8_STRING_NEW_FROM_UTF8: identifiers.V8_STRING_NEW_FROM_UTF8.identify(),
+            V8_STRING_UTF8LENGTH_V2: SymbolIdentifier {
+                symbols: vec![
+                    "_ZNK2v86String12Utf8LengthV2EPNS_7IsolateE".into(),
+                    "?Utf8LengthV2@String@v8@@QEBA_KPEAVIsolate@2@@Z".into(),
+                ],
+            }
+            .identify(),
+            V8_STRING_WRITE_UTF8_V2: SymbolIdentifier {
+                symbols: vec![
+                    "_ZNK2v86String11WriteUtf8V2EPNS_7IsolateEPcmiPm".into(),
+                    "?WriteUtf8V2@String@v8@@QEBA_KPEAVIsolate@2@PEAD_KHPEA_K@Z".into(),
+                ],
+            }
+            .identify(),
+            V8_ISOLATE_GET_CURRENT: SymbolIdentifier {
+                symbols: vec![
+                    "_ZN2v87Isolate10GetCurrentEv".into(),
+                    "?GetCurrent@Isolate@v8@@SAPEAV12@XZ".into(),
+                ],
+            }
+            .identify(),
         }
     }
 }
@@ -240,8 +264,33 @@ mod tests {
                 V8_STRING_WRITE_UTF8: pointers[2],
                 V8_CONTEXT_GET_ISOLATE: pointers[3],
                 V8_STRING_NEW_FROM_UTF8: pointers[4],
+                V8_STRING_UTF8LENGTH_V2: None,
+                V8_STRING_WRITE_UTF8_V2: None,
+                V8_ISOLATE_GET_CURRENT: None,
             };
             assert_eq!(symbols.is_complete(), missing == 5);
+        }
+    }
+
+    #[test]
+    fn modern_symbols_require_both_string_apis_and_isolate() {
+        let pointer = Some(NativePointer(std::ptr::dangling_mut::<u8>().cast()));
+        for missing in 0..=3 {
+            let mut pointers = [pointer; 3];
+            if missing < pointers.len() {
+                pointers[missing] = None;
+            }
+            let symbols = Symbols {
+                V8_SCRIPT_COMPILER_COMPILE_FUNCTION: pointer,
+                V8_STRING_UTF8LENGTH: None,
+                V8_STRING_WRITE_UTF8: None,
+                V8_CONTEXT_GET_ISOLATE: None,
+                V8_STRING_NEW_FROM_UTF8: pointer,
+                V8_STRING_UTF8LENGTH_V2: pointers[0],
+                V8_STRING_WRITE_UTF8_V2: pointers[1],
+                V8_ISOLATE_GET_CURRENT: pointers[2],
+            };
+            assert_eq!(symbols.is_complete(), missing == 3);
         }
     }
 }
