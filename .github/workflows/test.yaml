@@ -18,6 +18,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Check native entry ABI
+        run: |
+          cmake -S crates/core/native -B target/native-tests -DCMAKE_BUILD_TYPE=Release
+          cmake --build target/native-tests --config Release --target v8_killer_abi_test
+      - name: Run native entry ABI test (Unix)
+        if: runner.os != 'Windows'
+        run: target/native-tests/v8_killer_abi_test
+      - name: Run native entry ABI test (Windows)
+        if: runner.os == 'Windows'
+        run: target/native-tests/Release/v8_killer_abi_test.exe
       - name: Run non-macOS tests
         if: matrix.os != 'macos-latest'
         run: cargo test --locked --verbose

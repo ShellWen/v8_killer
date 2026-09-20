@@ -2,15 +2,27 @@
 
 ## Build the Rust project
 
-Install stable Rust with [rustup](https://rustup.rs/) and the native compiler and linker for your platform. On Windows, use the MSVC toolchain with Visual Studio C++ build tools.
+Install stable Rust with [rustup](https://rustup.rs/), CMake 3.18 or newer, and the native C/C++ compiler and linker for your platform. On Windows, use the MSVC toolchain with Visual Studio C++ build tools.
 
 From the repository root, build the workspace:
 
 ```sh
-cargo build --release
+cargo build --locked --release
 ```
 
-This builds the `crates/core` shared library and the `crates/launcher` executable into `target/release/`. The core uses Frida's automatically downloaded development kit, so the first build requires network access.
+This builds the `crates/core` shared library and the `crates/launcher` executable into `target/release/`. CMake downloads and statically builds official [Dobby](https://github.com/jmpews/Dobby) revision `223aabced0431525c7d45196f9409fc505d58ac8`; the archive is verified with SHA-256 `b6e5054dd75c54dfe5a7b9585722af344984de8fbf0e8456b45260cbb0b8b73f`. The first build requires network access. No separate Dobby runtime library is needed.
+
+The pinned revision supports the Windows backend. `crates/core/native/patch.cmake` supplies its missing Windows writable-page permission, adapts the x64 instrumentation bridge to the Windows calling convention and shadow space, and identifies Apple Silicon macOS correctly. Instrumentation is installed only at the configured function entry; it resumes the original instructions with the saved arguments and return convention. Supported entry ABIs are Linux/macOS x86-64, Linux/macOS AArch64, and Windows x64 MSVC V8 (including when the injector is built with GNU Rust).
+
+Run the native ABI regression, which checks both compiler signatures, stack arguments, original execution and returned values:
+
+```sh
+cmake -S crates/core/native -B target/native-tests -DCMAKE_BUILD_TYPE=Release
+cmake --build target/native-tests --config Release --target v8_killer_abi_test
+target/native-tests/v8_killer_abi_test
+```
+
+With Visual Studio, run `target/native-tests/Release/v8_killer_abi_test.exe` instead.
 
 ## Develop the documentation
 

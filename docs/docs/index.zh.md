@@ -61,7 +61,7 @@ V8 Killer 的缺点主要集中在以下几点：
 
 该项目使用了一些来自社区的开源代码，我们对这些贡献者表示由衷的感谢：  
 
-- [frida-rust](https://github.com/frida/frida-rust){target=\_blank}
+- [Dobby](https://github.com/jmpews/Dobby){target=\_blank}
 - [lazy_static.rs](https://github.com/rust-lang-nursery/lazy-static.rs){target=\_blank}
 - [rust-ctor](https://github.com/mmastrac/rust-ctor){target=\_blank}
 - [toml-rs](https://github.com/toml-rs/toml){target=\_blank}

@@ -9,12 +9,14 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ctor = "1.0.13"
-frida-gum = { version = "0.17.2", features = ["auto-download", "invocation-listener"] }
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
 toml = "1.1.6"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+[build-dependencies]
+cmake = "0.1.58"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { version = "0.61.2", features = [

@@ -72,7 +72,7 @@ The users of this project must read this statement carefully while complying wit
 This project uses some open source code from the community, we would like to express our sincere gratitude to these
 contributors:
 
-- [frida-rust](https://github.com/frida/frida-rust){target=\_blank}
+- [Dobby](https://github.com/jmpews/Dobby){target=\_blank}
 - [lazy_static.rs](https://github.com/rust-lang-nursery/lazy-static.rs){target=\_blank}
 - [rust-ctor](https://github.com/mmastrac/rust-ctor){target=\_blank}
 - [toml-rs](https://github.com/toml-rs/toml){target=\_blank}

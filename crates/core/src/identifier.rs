@@ -1,7 +1,14 @@
-use crate::GUM;
-use frida_gum::{Module, NativePointer};
 use serde::Deserialize;
+use std::ffi::{c_char, c_void, CString};
 use tracing::debug;
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct NativePointer(pub(crate) *mut c_void);
+
+unsafe extern "C" {
+    fn v8_killer_symbol(name: *const c_char) -> *mut c_void;
+    fn v8_killer_module(name: *const c_char) -> *mut c_void;
+}
 
 #[allow(non_snake_case)]
 #[derive(Debug)]
@@ -96,9 +103,12 @@ pub(crate) struct SymbolIdentifier {
 impl Identifier for SymbolIdentifier {
     fn identify(&self) -> Option<NativePointer> {
         for symbol in &self.symbols {
-            let ptr = Module::find_global_export_by_name(symbol);
-            if ptr.is_some() {
-                return ptr;
+            let Ok(symbol) = CString::new(symbol.as_str()) else {
+                continue;
+            };
+            let ptr = unsafe { v8_killer_symbol(symbol.as_ptr()) };
+            if !ptr.is_null() {
+                return Some(NativePointer(ptr));
             }
         }
         None
@@ -113,12 +123,14 @@ pub(crate) struct RvaIdentifier {
 
 impl Identifier for RvaIdentifier {
     fn identify(&self) -> Option<NativePointer> {
-        let m = Module::load(&GUM, self.module_name.as_str());
-        let base_address = m.range().base_address();
-        if base_address.is_null() {
+        let name = CString::new(self.module_name.as_str()).ok()?;
+        let base = unsafe { v8_killer_module(name.as_ptr()) };
+        if base.is_null() {
             return None;
         }
-        Some(NativePointer(unsafe { base_address.0.add(self.rva) }))
+        (base as usize)
+            .checked_add(self.rva)
+            .map(|address| NativePointer(address as *mut c_void))
     }
 }
 
@@ -177,6 +189,42 @@ impl Default for Identifiers {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_identifiers_return_none() {
+        assert!(SymbolIdentifier {
+            symbols: vec!["v8_killer_missing_symbol".into(), "invalid\0name".into()]
+        }
+        .identify()
+        .is_none());
+        assert!(RvaIdentifier {
+            module_name: "v8_killer_missing_module".into(),
+            rva: 0
+        }
+        .identify()
+        .is_none());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn rva_resolves_the_main_executable_by_path_and_name() {
+        let path = std::env::current_exe().unwrap();
+        let resolve = |name: &str, rva| {
+            RvaIdentifier {
+                module_name: name.into(),
+                rva,
+            }
+            .identify()
+            .unwrap()
+            .0 as usize
+        };
+        let base = resolve(path.to_str().unwrap(), 0);
+        assert_ne!(base, 0);
+        assert_eq!(
+            resolve(path.file_name().unwrap().to_str().unwrap(), 17),
+            base + 17
+        );
+    }
 
     #[test]
     fn incomplete_symbols_disable_hooking() {

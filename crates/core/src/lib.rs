@@ -4,8 +4,6 @@ use crate::identifier::Symbols;
 use crate::pid_span::pid_span;
 use crate::v8_sys::{V8Context, V8Source};
 use ctor::ctor;
-use frida_gum::interceptor::{InvocationContext, InvocationListener};
-use frida_gum::{interceptor::Interceptor, Gum};
 use std::path::Path;
 use std::sync::LazyLock;
 use tracing::level_filters::LevelFilter;
@@ -22,7 +20,9 @@ mod processor;
 mod source;
 mod v8_sys;
 
-static GUM: LazyLock<Gum> = LazyLock::new(Gum::obtain);
+unsafe extern "C" {
+    fn v8_killer_instrument(address: *mut std::ffi::c_void) -> std::ffi::c_int;
+}
 
 static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     let config_file_path = std::env::var("V8_KILLER_CONFIG_FILE_PATH");
@@ -50,30 +50,11 @@ static SYMBOLS: LazyLock<Symbols> = LazyLock::new(|| {
     symbols
 });
 
-// v8::ScriptCompiler::CompileFunctionInternal(v8::Local<v8::Context>, v8::ScriptCompiler::Source*, unsigned long, v8::Local<v8::String>*, unsigned long, v8::Local<v8::Object>*, v8::ScriptCompiler::CompileOptions, v8::ScriptCompiler::NoCacheReason, v8::Local<v8::ScriptOrModule>*)
-// fallback for newer v8
-// v8::ScriptCompiler::CompileFunction(v8::Local<v8::Context>, v8::ScriptCompiler::Source*, unsigned long, v8::Local<v8::String>*, unsigned long, v8::Local<v8::Object>*, v8::ScriptCompiler::CompileOptions, v8::ScriptCompiler::NoCacheReason)
-struct V8ScriptCompilerCompileFunctionListener;
-
-impl InvocationListener for V8ScriptCompilerCompileFunctionListener {
-    fn on_enter(&mut self, frida_context: InvocationContext) {
-        let pid_span = pid_span();
-        let _enter = pid_span.enter();
-
-        unsafe {
-            #[cfg(any(target_os = "linux", target_os = "macos"))]
-            let context = frida_context.arg(0) as *const V8Context;
-            #[cfg(any(target_os = "linux", target_os = "macos"))]
-            let source = frida_context.arg(1) as *mut V8Source;
-            #[cfg(target_os = "windows")]
-            let context = frida_context.arg(1) as *const V8Context;
-            #[cfg(target_os = "windows")]
-            let source = frida_context.arg(2) as *mut V8Source;
-            process_script(&CONFIG, context, source);
-        }
-    }
-
-    fn on_leave(&mut self, _frida_context: InvocationContext) {}
+#[unsafe(no_mangle)]
+unsafe extern "C" fn v8_killer_process(context: *const V8Context, source: *mut V8Source) {
+    let span = pid_span();
+    let _enter = span.enter();
+    process_script(&CONFIG, context, source);
 }
 
 #[ctor(unsafe)]
@@ -110,27 +91,9 @@ fn init() {
         return;
     }
 
-    let mut interceptor = Interceptor::obtain(&GUM);
-
-    interceptor.begin_transaction();
-
-    let v8_script_compiler_compile_function = SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_FUNCTION;
-
-    match v8_script_compiler_compile_function {
-        None => {
-            error!("v8_script_compiler_compile_function not found");
-            error!("source processing will not work properly");
-        }
-        Some(addr) => {
-            // Gum retains a pointer to the listener for the lifetime of the hook.
-            let listener = Box::leak(Box::new(V8ScriptCompilerCompileFunctionListener));
-            interceptor.attach(addr, listener).map_err(|e| {
-                error!(
-                    "Failed to attach V8ScriptCompilerCompileFunctionListener to v8_script_compiler_compile_function, error: {e}"
-                )
-            }).unwrap();
-        }
+    let address = SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_FUNCTION.unwrap().0;
+    let status = unsafe { v8_killer_instrument(address) };
+    if status != 0 {
+        error!("DobbyInstrument failed ({status}); source processing is disabled");
     }
-
-    interceptor.end_transaction();
 }

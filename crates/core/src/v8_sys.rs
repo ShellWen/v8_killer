@@ -42,13 +42,13 @@ pub(crate) struct V8Source {
 
 type v8__Context__GetIsolate = unsafe extern "C" fn(context: *const V8Context) -> *const V8Isolate;
 type v8__String__Utf8Length =
-    unsafe extern "C" fn(this: *const V8String, isolate: *const V8Isolate) -> usize;
+    unsafe extern "C" fn(this: *const V8String, isolate: *const V8Isolate) -> c_int;
 type v8__String__WriteUtf8 = unsafe extern "C" fn(
     this: *const V8String,
     isolate: *const V8Isolate,
     buffer: *mut c_char,
     length: c_int,
-    nchars_ref: *mut usize,
+    nchars_ref: *mut c_int,
     options: c_int,
 ) -> c_int;
 #[cfg(target_os = "linux")]
@@ -60,12 +60,12 @@ type v8__String__NewFromUtf8 = unsafe extern "C" fn(
 ) -> V8Local<V8String>;
 #[cfg(target_os = "windows")]
 type v8__String__NewFromUtf8 = unsafe extern "C" fn(
-    arg0: *const *mut c_void,
+    arg0: *mut V8Local<V8String>,
     isolate: *const V8Isolate,
     data: *const c_char,
     new_type: i32,
     length: i32,
-) -> V8Local<V8String>;
+) -> *mut V8Local<V8String>;
 #[cfg(target_os = "macos")]
 type v8__String__NewFromUtf8 = unsafe extern "C" fn(
     isolate: *const V8Isolate,
@@ -91,6 +91,8 @@ pub(super) unsafe fn v8_string_utf8_length(
         std::mem::transmute(v8_string_utf8_length_ptr.0);
 
     v8_string_utf8_length_func(this, isolate)
+        .try_into()
+        .expect("negative V8 string length")
 }
 
 pub(crate) unsafe fn v8_string_write_utf8(
@@ -98,7 +100,7 @@ pub(crate) unsafe fn v8_string_write_utf8(
     isolate: *const V8Isolate,
     buffer: *mut c_char,
     length: c_int,
-    nchars_ref: *mut usize,
+    nchars_ref: *mut c_int,
     options: c_int,
 ) -> c_int {
     let v8_string_write_utf8_ptr = SYMBOLS.V8_STRING_WRITE_UTF8.unwrap();
@@ -124,12 +126,9 @@ pub(crate) unsafe fn v8_string_new_from_utf8(
     }
     #[cfg(target_os = "windows")]
     {
-        use std::ptr::null_mut;
-
-        let mut arg0_value: *mut c_void = null_mut();
-        let arg0: *const *mut c_void = &mut arg0_value;
-        v8_string_new_from_utf8_func(arg0, isolate, data, new_type, length);
-        arg0_value
+        let mut result = std::ptr::null();
+        v8_string_new_from_utf8_func(&mut result, isolate, data, new_type, length);
+        result
     }
 }
 
