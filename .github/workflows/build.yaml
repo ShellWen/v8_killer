@@ -130,7 +130,7 @@ jobs:
           runner=()
           suffix=
           if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
-            options=(-DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc-posix -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++-posix)
+            options=(-DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc-posix -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++-posix)
             runner=(wine)
             suffix=.exe
           fi
