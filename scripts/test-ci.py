@@ -63,6 +63,7 @@ scope = {}
 exec(compile(definitions, "test-node.py", "exec"), scope)
 for platform in ("nt", "posix"):
     scope["os"] = SimpleNamespace(name=platform, environ={}, killpg=Mock())
+    scope["signal"] = SimpleNamespace() if platform == "nt" else SimpleNamespace(SIGKILL=object())
     process = Mock(pid=123, returncode=-9)
     process.__enter__ = Mock(return_value=process)
     process.__exit__ = Mock(return_value=False)
@@ -80,7 +81,7 @@ for platform in ("nt", "posix"):
                 scope["os"].killpg.assert_not_called()
             else:
                 run.assert_not_called()
-                scope["os"].killpg.assert_called_once()
+                scope["os"].killpg.assert_called_once_with(process.pid, scope["signal"].SIGKILL)
             if not file_output:
                 assert result["stdout"] == "测试😀"
     path = r"C:\space 测试😀\node.exe"
