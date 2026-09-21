@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parent.parent
+bash = os.environ.get("CI_BASH", "bash")
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     tools = root / "bin"
@@ -36,7 +37,7 @@ esac
     for target in ("x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"):
         for profiles in ("debug", "debug release"):
             calls.write_text("")
-            subprocess.run(["bash", "scripts/ci-build.sh", target, profiles], cwd=root, env=env, check=True)
+            subprocess.run([bash, "scripts/ci-build.sh", target, profiles], cwd=root, env=env, check=True)
             lines = calls.read_text().splitlines()
             count = len(profiles.split())
             assert sum(line.startswith("cargo build --locked") for line in lines) == count
@@ -51,7 +52,7 @@ esac
             assert sum(line.startswith("sha256sum") for line in lines) == 3 * count
             assert lines[-1].endswith("--all-targets --all-features -- -D warnings")
     calls.write_text("")
-    result = subprocess.run(["bash", "scripts/ci-node.sh", "win", "debug", "x86_64-pc-windows-msvc"], cwd=root,
+    result = subprocess.run([bash, "scripts/ci-node.sh", "win", "debug", "x86_64-pc-windows-msvc"], cwd=root,
                             env={**env, "CHECKSUM_EXIT": "1"})
     assert result.returncode != 0
     assert "python" not in calls.read_text()

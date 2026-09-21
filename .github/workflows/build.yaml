@@ -117,7 +117,12 @@ jobs:
         run: |
           cargo fmt --all -- --check
       - name: Check CI scripts
-        run: python scripts/test-ci.py
+        run: |
+          export CI_BASH="$BASH"
+          if [[ $RUNNER_OS == Windows ]]; then
+            CI_BASH="$(cygpath -w "$BASH")"
+          fi
+          python scripts/test-ci.py
       - name: Native ABI regression
         env:
           TARGET: ${{ matrix.target }}
