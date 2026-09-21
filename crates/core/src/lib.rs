@@ -2,7 +2,7 @@ use crate::config::{Config, ReadFromFile};
 use crate::core::process_script;
 use crate::identifier::Symbols;
 use crate::pid_span::pid_span;
-use crate::v8_sys::{V8Context, V8Source};
+use crate::v8_sys::{v8_context_get_isolate, V8Context, V8Isolate, V8Source};
 use ctor::ctor;
 use std::path::Path;
 use std::sync::LazyLock;
@@ -22,6 +22,7 @@ mod v8_sys;
 
 unsafe extern "C" {
     fn v8_killer_instrument(address: *mut std::ffi::c_void) -> std::ffi::c_int;
+    fn v8_killer_instrument_module(address: *mut std::ffi::c_void) -> std::ffi::c_int;
 }
 
 static CONFIG: LazyLock<Config> = LazyLock::new(|| {
@@ -52,9 +53,14 @@ static SYMBOLS: LazyLock<Symbols> = LazyLock::new(|| {
 
 #[unsafe(no_mangle)]
 unsafe extern "C" fn v8_killer_process(context: *const V8Context, source: *mut V8Source) {
+    v8_killer_process_module(v8_context_get_isolate(context), source);
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn v8_killer_process_module(isolate: *const V8Isolate, source: *mut V8Source) {
     let span = pid_span();
     let _enter = span.enter();
-    process_script(&CONFIG, context, source);
+    process_script(&CONFIG, isolate, source);
 }
 
 #[ctor(unsafe)]
@@ -94,6 +100,14 @@ fn init() {
     let address = SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_FUNCTION.unwrap().0;
     let status = unsafe { v8_killer_instrument(address) };
     if status != 0 {
-        error!("DobbyInstrument failed ({status}); source processing is disabled");
+        error!("DobbyInstrument failed ({status}); CommonJS source processing is disabled");
+    }
+    if let Some(address) = SYMBOLS.V8_SCRIPT_COMPILER_COMPILE_MODULE {
+        let status = unsafe { v8_killer_instrument_module(address.0) };
+        if status != 0 {
+            error!("DobbyInstrument failed ({status}); ESM source processing is disabled");
+        }
+    } else {
+        warn!("CompileModule not found; ESM source processing is disabled");
     }
 }

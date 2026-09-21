@@ -50,6 +50,29 @@ mod windows {
         len
     }
 
+    fn quote_argument(argument: &str) -> String {
+        let mut quoted = String::from("\"");
+        let mut backslashes = 0;
+        for character in argument.chars() {
+            if character == '\\' {
+                backslashes += 1;
+                continue;
+            }
+            quoted.extend(std::iter::repeat_n(
+                '\\',
+                backslashes * if character == '"' { 2 } else { 1 },
+            ));
+            if character == '"' {
+                quoted.push('\\');
+            }
+            quoted.push(character);
+            backslashes = 0;
+        }
+        quoted.extend(std::iter::repeat_n('\\', backslashes * 2));
+        quoted.push('"');
+        quoted
+    }
+
     pub(crate) fn launch_with_remote_thread_inject(
         executable: &str,
         args: &[&str],
@@ -59,8 +82,7 @@ mod windows {
             "\"{}\" {}",
             executable,
             args.iter()
-                .map(|arg| arg.to_string())
-                // .map(|arg| format!("\"{}\"", arg))
+                .map(|arg| quote_argument(arg))
                 .collect::<Vec<String>>()
                 .join(" ")
         );

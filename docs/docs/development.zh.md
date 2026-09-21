@@ -14,7 +14,7 @@ cargo build --locked --release
 
 该固定版本保留 Windows 后端。`crates/core/native/patch.cmake` 补充 Windows 可写页权限、适配 x64 instrumentation 调用桥的 Windows 参数寄存器和 shadow space，并修正 Apple Silicon macOS 平台识别。仅在配置的函数入口安装 instrumentation，随后恢复原参数和返回约定，继续执行原指令。支持的入口 ABI 为 Linux/macOS x86-64、Linux/macOS AArch64，以及 Windows x64 MSVC V8（包括使用 GNU Rust 构建注入器的情况）。
 
-原生 ABI 回归检查两种编译入口的栈参数、原函数执行及返回值：
+原生 ABI 回归检查 `CompileFunctionInternal`、`CompileFunction` 和 `CompileModule` 的参数、原函数执行及返回值：
 
 ```sh
 cmake -S crates/core/native -B target/native-tests -DCMAKE_BUILD_TYPE=Release
@@ -26,11 +26,15 @@ target/native-tests/v8_killer_abi_test
 
 ## Node.js 兼容性
 
-Linux x86-64 注入已验证 Node.js 22.23.2、26.5.0 和 26.8.1。CommonJS `.cjs`、`.js` 文件使用 Node 默认执行选项即可处理，包含默认的类型剥离设置。ESM 导入的 CommonJS 可以处理；ESM 源码本身使用 `CompileModule`，不在当前 `CompileFunction` hook 范围内。
+Linux x86-64 debug/release 注入已使用默认执行选项验证 Node.js 22.23.2、26.5.0 和 26.8.1，包含默认的类型剥离设置。源码处理覆盖 CommonJS `.cjs`/`.js`、ESM `.mjs` 和 `"type":"module"` 下的 `.js`，包括静态导入、动态导入、ESM 导入 CJS 和 CJS 同步 `require()` ESM。
+
+Node 的 [ModuleWrap](https://github.com/nodejs/node/blob/v26.8.1/src/module_wrap.cc) 通过 `ScriptCompiler::CompileModule(Isolate*, Source*, CompileOptions, NoCacheReason)` 编译 ESM。此入口直接使用传入的 isolate，与 CJS hook 共享源码处理。两者均返回 `MaybeLocal`：Unix x86-64 使用 RDI/RSI 传递 isolate/source，AArch64 使用 X0/X1；Windows x64 MSVC 的 RCX 是隐藏返回指针，isolate/source 位于 RDX/R8。未挂钩流式 `CompileModule` 重载。
+
+`identifiers.V8_SCRIPT_COMPILER_COMPILE_MODULE` 接受与现有标识符相同的 symbol/RVA 列表。省略该字段时使用内置符号，旧自定义标识符配置亦兼容；空列表禁用 ESM hook。缺少 ESM 符号或 ESM hook 安装失败不影响 CJS hook。ESM 资源名通常是 `file:` URL，文件名中的非 ASCII 字符会被百分号编码；匹配规则应使用 V8 实际提供的 URL。
 
 Node 26 移除了 `Context::GetIsolate`、`String::Utf8Length` 和 `String::WriteUtf8`。兼容分支使用 `Isolate::GetCurrent`、`Utf8LengthV2` 和 `WriteUtf8V2`，分别按其真实签名调用，包括 `size_t` 长度及 V2 的 flags/字符数参数顺序。已配置的旧版标识符保留优先级，缺少必要符号时仍禁用 hook。
 
-ABI 依据 Node [v26.8.1 V8 头文件](https://github.com/nodejs/node/tree/v26.8.1/deps/v8/include)和 [API 实现](https://github.com/nodejs/node/blob/v26.8.1/deps/v8/src/api/api.cc)核对：`Source` 开头仍为源码、资源名两个 `Local` 字段；无论 direct 还是 indirect handle，`Local` 存储表示均与公开 API 的 receiver 表示一致，无须读取堆对象偏移。Windows x64 V2 符号声明已通过 Clang MSVC target 核对，尚未实测 Windows/macOS 的 Node 26 注入。后续版本需保持相同导出签名和 Source 前缀布局，不保证未来版本兼容。
+ABI 依据 Node [v26.8.1 V8 头文件](https://github.com/nodejs/node/tree/v26.8.1/deps/v8/include)和 [API 实现](https://github.com/nodejs/node/blob/v26.8.1/deps/v8/src/api/api.cc)核对：`Source` 开头仍为源码、资源名两个 `Local` 字段；无论 direct 还是 indirect handle，`Local` 存储表示均与公开 API 的 receiver 表示一致，无须读取堆对象偏移。Windows x64 V2 符号声明已通过 Clang MSVC target 核对。后续版本需保持相同导出签名和 Source 前缀布局，不保证未来版本兼容。
 
 使用已构建的 launcher 和指定 Node 运行 UTF-8 回归检查（需要 Python 3）：
 
@@ -39,7 +43,23 @@ python3 scripts/test-node.py target/debug/v8_killer_launcher /path/to/node
 python3 scripts/test-node.py target/release/v8_killer_launcher /path/to/node
 ```
 
-检查覆盖默认 `.js`/`.cjs` 执行、ESM 导入 CJS、Unicode 文件名、中文、emoji 和内嵌 NUL，同时断言 ESM 源码未被处理。
+每个场景对比直接 Node、不匹配规则注入、匹配规则注入三次执行，断言 CJS/ESM 中 Unicode/emoji/空格路径和内嵌 NUL 的真实替换，同时验证导入、live binding、顶层 await、`import.meta`、未匹配模块、参数及退出码。CI 在 debug/release 下运行 Node 22/26 回归。
+
+官方 Node 22.23.2 和 26.8.1 x64 在原生 Linux 及 Wine 下的 Windows GNU 交叉构建 launcher/core 上，debug/release 均通过全部 11 个场景。Wine 结果不代表原生 Windows 或 MSVC 构建。Windows 二进制使用 `--wine --file-output --report result.json`，通过 `winepath` 转换目标参数。Wine 管道采集基线报 `open EBADF`，普通文件采集通过。原生 Windows、macOS 和非默认代码缓存/流式编译路径仍未验证。
+
+## Electron 字符串 ABI 兼容性
+
+Electron 44.4.3 使用 V8 15.2.124.28-electron.0。Linux x64 和 macOS x64/arm64 导出重命名后的 `WriteUtf8(Isolate*, char*, size_t, int, size_t*)`，返回 `size_t`；Windows x64 保留 V2 导出。两个名称共用 size_t 分支，现有旧版标识符优先，随后依次尝试 V2 和新名称。[V8 头文件](https://github.com/v8/v8/blob/15.2.124.28/include/v8-primitive.h)明确将 `WriteUtf8V2` 转发到 `WriteUtf8`。[API 实现](https://github.com/v8/v8/blob/15.2.124.28/src/api/api.cc)与[编码包装实现](https://github.com/v8/v8/blob/15.2.124.28/src/objects/string.cc)确认容量和返回值按字节计数，可选输出为已处理输入字符数，flags 为 `kNullTerminate=1`、`kReplaceInvalidUtf8=2`。当前使用 flag 2，不追加终止符，保留内嵌 NUL 字节。
+
+重命名后的 `Utf8Length` 也返回 `size_t`。Itanium 名称不编码返回类型，因此通过新 writer 识别此 API 代际；配置的长度地址若匹配该导出，则按 size_t ABI 调用。其他自定义旧 ABI symbol/RVA 地址仍优先。`V8_STRING_WRITE_UTF8` 配置字段仍表示旧 ABI，不能填入新签名。`NewFromUtf8` 的字节长度仍为 `int`。缺少必要符号时仍禁用 hook。
+
+运行独立 fake 函数回归（不执行 core 库构造函数、原生符号查找或 hook）：
+
+```sh
+cargo test --locked -p v8_killer_core --test string_abi
+```
+
+符号/ABI 适配与纯 Rust 检查**不代表** Electron 注入支持已验证。尚未验证真实 Electron 注入。独立的 Electron 28.3.3/44.4.3 普通应用基线仅验证正常模块加载；Windows/macOS 结果仅为静态导出检查。
 
 ## 开发文档
 

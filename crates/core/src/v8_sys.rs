@@ -2,6 +2,7 @@
 
 use std::ffi::{c_char, c_int, c_void};
 
+use crate::identifier::Symbols;
 use crate::SYMBOLS;
 
 pub(crate) type V8Context = c_void;
@@ -90,18 +91,19 @@ pub(crate) unsafe fn v8_context_get_isolate(context: *const V8Context) -> *const
 }
 
 pub(super) unsafe fn v8_string_utf8_length(
+    symbols: &Symbols,
     this: *const V8String,
     isolate: *const V8Isolate,
 ) -> usize {
-    if let Some(pointer) = SYMBOLS
-        .V8_STRING_UTF8LENGTH_V2
-        .filter(|_| SYMBOLS.V8_STRING_UTF8LENGTH.is_none())
+    if let Some(pointer) = symbols
+        .V8_STRING_UTF8LENGTH_SIZE_T
+        .filter(|_| symbols.V8_STRING_UTF8LENGTH.is_none())
     {
         let function: unsafe extern "C" fn(*const V8String, *const V8Isolate) -> usize =
             std::mem::transmute(pointer.0);
         return function(this, isolate);
     }
-    let v8_string_utf8_length_ptr = SYMBOLS.V8_STRING_UTF8LENGTH.unwrap();
+    let v8_string_utf8_length_ptr = symbols.V8_STRING_UTF8LENGTH.unwrap();
     let v8_string_utf8_length_func: v8__String__Utf8Length =
         std::mem::transmute(v8_string_utf8_length_ptr.0);
 
@@ -111,6 +113,7 @@ pub(super) unsafe fn v8_string_utf8_length(
 }
 
 pub(crate) unsafe fn v8_string_write_utf8(
+    symbols: &Symbols,
     this: *const V8String,
     isolate: *const V8Isolate,
     buffer: *mut c_char,
@@ -118,7 +121,7 @@ pub(crate) unsafe fn v8_string_write_utf8(
     nchars_ref: *mut c_int,
     options: c_int,
 ) -> c_int {
-    let v8_string_write_utf8_ptr = SYMBOLS.V8_STRING_WRITE_UTF8.unwrap();
+    let v8_string_write_utf8_ptr = symbols.V8_STRING_WRITE_UTF8.unwrap();
     let v8_string_write_utf8_func: v8__String__WriteUtf8 =
         std::mem::transmute(v8_string_write_utf8_ptr.0);
 
@@ -151,12 +154,20 @@ pub(crate) fn string_from_local_string(
     isolate: *const V8Isolate,
     local_string: *const V8String,
 ) -> String {
+    string_from_local_string_with_symbols(&SYMBOLS, isolate, local_string)
+}
+
+pub(crate) fn string_from_local_string_with_symbols(
+    symbols: &Symbols,
+    isolate: *const V8Isolate,
+    local_string: *const V8String,
+) -> String {
     unsafe {
-        let length = v8_string_utf8_length(local_string, isolate);
+        let length = v8_string_utf8_length(symbols, local_string, isolate);
         let mut buffer = vec![0u8; length];
-        let written = if let Some(pointer) = SYMBOLS
-            .V8_STRING_WRITE_UTF8_V2
-            .filter(|_| SYMBOLS.V8_STRING_WRITE_UTF8.is_none())
+        let written = if let Some(pointer) = symbols
+            .V8_STRING_WRITE_UTF8_SIZE_T
+            .filter(|_| symbols.V8_STRING_WRITE_UTF8.is_none())
         {
             let function: unsafe extern "C" fn(
                 *const V8String,
@@ -176,6 +187,7 @@ pub(crate) fn string_from_local_string(
             )
         } else {
             v8_string_write_utf8(
+                symbols,
                 local_string,
                 isolate,
                 buffer.as_mut_ptr().cast(),

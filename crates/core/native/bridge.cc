@@ -16,21 +16,28 @@
 #endif
 
 extern "C" void v8_killer_process(void *context, void *source);
+extern "C" void v8_killer_process_module(void *isolate, void *source);
 
+// Both return MaybeLocal: MSVC x64 inserts an sret pointer before the arguments.
+template <void (*process)(void *, void *)>
 static void on_enter(RegisterContext *ctx, const HookEntryInfo *) {
 #if defined(_WIN32) && (defined(_M_X64) || defined(__x86_64__))
-  v8_killer_process((void *)ctx->general.regs.rdx, (void *)ctx->general.regs.r8);
+  process((void *)ctx->general.regs.rdx, (void *)ctx->general.regs.r8);
 #elif defined(__x86_64__)
-  v8_killer_process((void *)ctx->general.regs.rdi, (void *)ctx->general.regs.rsi);
+  process((void *)ctx->general.regs.rdi, (void *)ctx->general.regs.rsi);
 #elif !defined(_WIN32) && (defined(__aarch64__) || defined(__arm64__))
-  v8_killer_process((void *)ctx->general.regs.x0, (void *)ctx->general.regs.x1);
+  process((void *)ctx->general.regs.x0, (void *)ctx->general.regs.x1);
 #else
 #error Unsupported V8 entry ABI
 #endif
 }
 
 extern "C" int v8_killer_instrument(void *address) {
-  return DobbyInstrument(address, on_enter);
+  return DobbyInstrument(address, on_enter<v8_killer_process>);
+}
+
+extern "C" int v8_killer_instrument_module(void *address) {
+  return DobbyInstrument(address, on_enter<v8_killer_process_module>);
 }
 
 extern "C" void *v8_killer_symbol(const char *name) {

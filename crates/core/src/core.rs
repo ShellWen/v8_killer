@@ -5,16 +5,13 @@ use tracing::*;
 use crate::config::Config;
 use crate::matcher::SourceMatcher;
 use crate::source::Source;
-use crate::v8_sys::{
-    local_string_from_string, string_from_local_string, v8_context_get_isolate, V8Context, V8Source,
-};
+use crate::v8_sys::{local_string_from_string, string_from_local_string, V8Isolate, V8Source};
 
 pub(crate) unsafe fn process_script(
     config: &Config,
-    v8_context: *const V8Context,
+    isolate: *const V8Isolate,
     v8_source: *mut V8Source,
 ) {
-    let isolate = v8_context_get_isolate(v8_context);
     let resource_name = string_from_local_string(isolate, (*v8_source)._resource_name);
     let source_string = string_from_local_string(isolate, (*v8_source)._source_string);
     debug!("Processing source: {resource_name}");

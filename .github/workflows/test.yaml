@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         node: [22, 26]
+        profile: [debug, release]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -21,8 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: cargo build --locked
-      - run: python3 scripts/test-node.py target/debug/v8_killer_launcher "$(command -v node)"
+      - run: cargo build --locked ${{ matrix.profile == 'release' && '--release' || '' }}
+      - run: python3 scripts/test-node.py target/${{ matrix.profile }}/v8_killer_launcher "$(command -v node)"
   test:
     runs-on: ${{ matrix.os }}
     strategy:
