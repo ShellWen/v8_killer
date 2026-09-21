@@ -40,19 +40,22 @@ env:
 jobs:
   check:
     name: check (${{ matrix.target }})
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu]
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
     env:
       PROFILES: ${{ github.event_name == 'pull_request' && 'debug' || 'debug release' }}
-      WINEDEBUG: '-all'
-      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc-posix
-      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER: wine
-      CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc-posix
-      CXX_x86_64_pc_windows_gnu: x86_64-w64-mingw32-g++-posix
+      PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.91.1
@@ -60,25 +63,14 @@ jobs:
           targets: ${{ matrix.target }}
           components: clippy, rustfmt
       - name: Install native tools
-        env:
-          TARGET: ${{ matrix.target }}
+        if: runner.os == 'Linux'
         run: |
-          packages=(cmake g++ pkg-config)
-          if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
-            packages+=(gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix wine64 wine)
-          fi
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y "${packages[@]}"
-          if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
-            export WINEPREFIX="$RUNNER_TEMP/wine"
-            echo "WINEPREFIX=$WINEPREFIX" >> "$GITHUB_ENV"
-            wine --version
-            wineboot -u
-            wineserver -w
-            for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
-              cp "$(x86_64-w64-mingw32-g++-posix -print-file-name="$dll")" "$WINEPREFIX/drive_c/windows/system32/"
-            done
-          fi
+          sudo apt-get install --no-install-recommends -y cmake g++ pkg-config
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
       - name: Native cache identity
         id: native
         env:
@@ -86,25 +78,29 @@ jobs:
         run: |
           {
             cmake --version
-            gcc --version
-            g++ --version
-            if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
-              x86_64-w64-mingw32-gcc-posix -v 2>&1
-              x86_64-w64-mingw32-g++-posix -v 2>&1
+            if [[ $TARGET == x86_64-pc-windows-msvc ]]; then
+              command -v cl
+              cl 2>&1 || true
+              "$(cygpath -u "$VCToolsInstallDir")/bin/Hostx64/x64/link.exe" -? 2>&1
+              printf '%s\n' "$VCToolsVersion" "$WindowsSDKVersion" "$VCToolsInstallDir" "$WindowsSdkDir"
+            else
+              gcc --version
+              g++ --version
+              dpkg-query -W | grep -E '^(cmake|gcc|g\+\+|binutils|libc6)'
             fi
-            dpkg-query -W | grep -E '^(cmake|gcc|g\+\+|mingw|binutils|libc6)'
           } | tee native-tools.txt
           echo "key=$(sha256sum native-tools.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
-          echo "V8_KILLER_DOBBY_ARCHIVE=$GITHUB_WORKSPACE/.cache/dobby/source.tar.gz" >> "$GITHUB_ENV"
+          python -c 'import os; from pathlib import Path; p = Path(".cache/dobby/source.tar.gz").resolve(); open(os.environ["GITHUB_ENV"], "a", encoding="utf-8").write(f"V8_KILLER_DOBBY_ARCHIVE={p.as_posix()}\n")'
       - uses: Swatinem/rust-cache@v2
         with:
           cache-workspace-crates: true
           cache-bin: false
-          key: ubuntu-24.04-${{ matrix.target }}-${{ env.PROFILES }}-${{ steps.native.outputs.key }}-${{ hashFiles('Cargo.toml', 'crates/core/native/**', 'crates/core/build.rs', '.github/workflows/build.yaml') }}
+          key: ${{ matrix.os }}-${{ matrix.target }}-${{ env.PROFILES }}-${{ steps.native.outputs.key }}-${{ hashFiles('Cargo.toml', 'crates/core/native/**', 'crates/core/build.rs', '.github/workflows/build.yaml') }}
           cache-directories: .cache/native-tests
       - uses: actions/cache@v4
         with:
           path: .cache/dobby
+          enableCrossOsArchive: true
           key: dobby-archive-b6e5054dd75c54dfe5a7b9585722af344984de8fbf0e8456b45260cbb0b8b73f
       - name: Verify Dobby archive
         run: |
@@ -121,22 +117,21 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
           cargo fmt --all -- --check
-          python3 scripts/test-ci.py
+      - name: Check CI scripts
+        run: python scripts/test-ci.py
       - name: Native ABI regression
         env:
           TARGET: ${{ matrix.target }}
         run: |
           options=()
-          runner=()
-          suffix=
-          if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
-            options=(-DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc-posix -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++-posix)
-            runner=(wine)
-            suffix=.exe
+          executable=v8_killer_abi_test
+          if [[ $TARGET == x86_64-pc-windows-msvc ]]; then
+            options=(-G 'Visual Studio 17 2022' -A x64)
+            executable=Release/v8_killer_abi_test.exe
           fi
-          cmake -S crates/core/native -B .cache/native-tests -DCMAKE_BUILD_TYPE=Release "${options[@]}"
-          cmake --build .cache/native-tests --parallel 2 --target v8_killer_abi_test
-          "${runner[@]}" ".cache/native-tests/v8_killer_abi_test$suffix"
+          cmake -S crates/core/native -B ".cache/native-tests/$TARGET" -DCMAKE_BUILD_TYPE=Release "${options[@]}"
+          cmake --build ".cache/native-tests/$TARGET" --config Release --parallel 2 --target v8_killer_abi_test
+          ".cache/native-tests/$TARGET/$executable"
       - name: Build, test and lint
         env:
           TARGET: ${{ matrix.target }}
@@ -159,14 +154,4 @@ jobs:
             target/${{ matrix.target }}/release/v8_killer_launcher.exe
             target/${{ matrix.target }}/release/libv8_killer_core.so
             target/${{ matrix.target }}/release/v8_killer_core.dll
-          retention-days: 7
-      - name: Upload Windows runtime libraries
-        if: github.event_name == 'workflow_dispatch' && matrix.target == 'x86_64-pc-windows-gnu'
-        uses: actions/upload-artifact@v4
-        with:
-          name: runtime-${{ matrix.target }}
-          path: |
-            ${{ env.WINEPREFIX }}/drive_c/windows/system32/libgcc_s_seh-1.dll
-            ${{ env.WINEPREFIX }}/drive_c/windows/system32/libstdc++-6.dll
-            ${{ env.WINEPREFIX }}/drive_c/windows/system32/libwinpthread-1.dll
           retention-days: 7

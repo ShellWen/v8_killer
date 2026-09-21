@@ -9,7 +9,7 @@ for profile in $profiles; do
   cargo build "${options[@]}"
   cargo test "${options[@]}"
   platform=linux
-  if [[ $target == x86_64-pc-windows-gnu ]]; then platform=win; fi
+  if [[ $target == x86_64-pc-windows-msvc ]]; then platform=win; fi
   bash scripts/ci-node.sh "$platform" "$profile" "$target"
 done
 cargo clippy --locked --target "$target" --all-targets --all-features -- -D warnings

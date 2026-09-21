@@ -84,7 +84,7 @@ Pattern matching is on the way. [#12](https://github.com/ShellWen/v8_killer/issu
 
 See [Getting Started](https://shellwen.github.io/v8_killer/getting-started/) and the [development guide](docs/docs/development.en.md).
 
-CI is configured for official Node **22.23.2, 24.21.0 and 26.8.1**, using Rust **1.91.1** on Ubuntu 24.04: Linux x64 natively and Windows x64 GNU under Wine. PRs build debug once per platform and run 6 Node/profile/platform combinations (198 scenario executions); `master` pushes and manual runs build debug+release and run 12 combinations (396 executions). Node versions run sequentially against the same build. These workflows have not yet been run remotely; local regression results do not establish a green GitHub CI run.
+CI is configured for official Node **22.23.2, 24.21.0 and 26.8.1**, using Rust **1.91.1**: native Linux x64 on `ubuntu-24.04` and native Windows x64 MSVC on `windows-2022`. PRs build debug once per platform and run 6 Node/profile/platform combinations (198 scenario executions); `master` pushes and manual runs build debug+release and run 12 combinations (396 executions). Node versions run sequentially against the same build. Previous CI runs used GNU/Wine; the new native MSVC configuration still requires remote validation.
 
 Cargo registry/git, workspace build outputs, native ABI tests, verified official Node downloads and the Dobby source archive are cached. JSON regression logs are retained for 7 days. Binary artifacts are available only from manual CI runs; PRs upload only JSON reports. See the development guide for cache invalidation and first-run checks.
 

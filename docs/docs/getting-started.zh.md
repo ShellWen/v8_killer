@@ -8,11 +8,11 @@ V8 Killer 分为 `core` 核心部分，与 `launcher` 启动器部分。
 
 [//]: # (目前，我们提供预构建版本，发布在 [GitHub Releases][github-releases-url]{target=\_blank} 中)
 
-手动运行 [GitHub Actions][github-actions-build-url]{target=\_blank} CI 可生成 Linux x64 与 Windows x64 GNU release 构建产物，保留 7 天。PR 仅上传回归 JSON 报告。新版 CI 配置尚未远程运行。
-Windows GNU 还需下载配套 `runtime-x86_64-pc-windows-gnu` 产物，将其中 DLL 放到目标 Node 可执行文件旁或其 DLL 搜索路径中。
+手动运行 [GitHub Actions][github-actions-build-url]{target=\_blank} CI 可生成 Linux x64 与 Windows x64 MSVC release 构建产物，保留 7 天。PR 仅上传回归 JSON 报告。原生 MSVC 配置仍待首次远程验证。
+请将 `v8_killer_launcher.exe` 与 `v8_killer_core.dll` 放在同一目录。Windows 使用 Microsoft Visual C++ x64 runtime，CI runner 已提供；产物不再附带 GNU runtime DLL。
 如需自行构建，请参考 [开发](development.md)。
 
-CI 已配置官方 Node 22/24/26 的 Linux 与 Windows GNU/Wine 覆盖，具体本地已测版本见开发文档。原生 Windows/MSVC 与真实 Electron 注入尚未验证。macOS 为实验性支持，没有 CI 测试。
+CI 使用 Rust 1.91.1 和官方 Node 22.23.2/24.21.0/26.8.1，覆盖原生 Linux（`ubuntu-24.04`）与原生 Windows MSVC（`windows-2022`）。历史本地测试使用 Linux 和 Windows GNU/Wine，详见开发文档。原生 MSVC 结果与真实 Electron 注入仍未验证。macOS 为实验性支持，没有 CI 测试。
 
 ## 编写配置文件
 
@@ -29,7 +29,7 @@ macOS 使用实验性实现；下方示例仅在 Linux 上验证。
 ```bash
 #!/usr/bin/env bash
 export V8_KILLER_CONFIG_FILE_PATH=/path/to/config/file/config.toml
-v8_killer_launcher "/usr/bin/node" "/path/to/js/main.js"
+v8_killer_launcher "/usr/bin/node" -- "/path/to/js/main.js"
 ```
 
 ### Windows

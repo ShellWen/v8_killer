@@ -18,7 +18,7 @@ for version in 22.23.2 24.21.0 26.8.1; do
     archive=win-x64/node.exe
     node="$root/$archive"
     launcher="target/$target/$profile/v8_killer_launcher.exe"
-    options=(--wine --file-output)
+    options=(--file-output)
     mkdir -p "$root/win-x64"
   fi
   if [[ ! -f $root/$archive ]]; then
@@ -28,5 +28,5 @@ for version in 22.23.2 24.21.0 26.8.1; do
   if [[ $platform == linux ]]; then
     tar -xJf "$root/$archive" -C "$root"
   fi
-  python3 scripts/test-node.py "$launcher" "$node" "${options[@]}" --report "reports/$platform-$version-$profile.json"
+  python scripts/test-node.py "$launcher" "$node" "${options[@]}" --report "reports/$platform-$version-$profile.json"
 done

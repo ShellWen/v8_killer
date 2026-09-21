@@ -35,7 +35,7 @@ The approach modifies compilation input in memory. Real Electron injection has n
 
 Official Node.js 22.23.2, 24.21.0 and 26.8.1 passed local debug/release injection regressions on Linux x64 and Windows x64 GNU builds under Wine. See [Development](development.md) for results and details.
 
-CI is configured for Node 22/24/26 on Linux x64 and Windows GNU/Wine; it has not yet been run remotely. Windows coverage does not establish native Windows/MSVC support. macOS is experimental, with no CI tests. Electron injection remains unverified; CEF is untested and Deno is unsupported.
+CI is configured for Node 22.23.2/24.21.0/26.8.1 on native Linux x64 (`ubuntu-24.04`) and native Windows x64 MSVC (`windows-2022`), using Rust 1.91.1. Earlier CI used GNU/Wine; the new native MSVC configuration awaits remote validation. Historical GNU/Wine results do not establish native MSVC support. macOS is experimental, with no CI tests. Electron injection remains unverified; CEF is untested and Deno is unsupported.
 
 The main disadvantages of V8 Killer:
 

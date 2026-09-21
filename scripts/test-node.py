@@ -9,6 +9,9 @@ import tempfile
 import signal
 
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 parser = argparse.ArgumentParser()
 parser.add_argument("launcher")
 parser.add_argument("node")
@@ -20,23 +23,30 @@ launcher = str(Path(args.launcher).resolve())
 node = str(Path(args.node).resolve())
 prefix = ["wine"] if args.wine else []
 report = {"runs": [], "artifacts": {}, "capture": "file" if args.file_output else "pipe"}
-for path in (launcher, node, str(Path(launcher).with_name("v8_killer_core.dll" if args.wine else "libv8_killer_core.so"))):
+for path in (launcher, node, str(Path(launcher).with_name("v8_killer_core.dll" if args.wine or os.name == "nt" else "libv8_killer_core.so"))):
     report["artifacts"][path] = hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def target_path(path):
-    return subprocess.check_output(["winepath", "-w", str(path)], text=True, timeout=30).strip() if args.wine else str(path)
+    return subprocess.check_output(["winepath", "-w", str(path)], encoding="utf-8", timeout=30).strip() if args.wine else str(path)
+
+def kill_tree(process):
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10, check=True)
+    else:
+        os.killpg(process.pid, signal.SIGKILL)
 
 def run(command):
     if args.file_output:
         with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
-            with subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True,
+            with subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=os.name != "nt",
                                   env={**os.environ, "NO_COLOR": "1"}) as process:
                 timed_out = False
                 try:
                     process.wait(timeout=30)
                 except subprocess.TimeoutExpired:
                     timed_out = True
-                    os.killpg(process.pid, signal.SIGKILL)
+                    kill_tree(process)
                     process.wait()
             stdout.seek(0)
             stderr.seek(0)
@@ -44,13 +54,13 @@ def run(command):
                     "stdout": stdout.read().decode("utf-8", errors="replace"),
                     "stderr": stderr.read().decode("utf-8", errors="replace")}
     with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          start_new_session=True, env={**os.environ, "NO_COLOR": "1"}) as process:
+                          start_new_session=os.name != "nt", env={**os.environ, "NO_COLOR": "1"}) as process:
         timed_out = False
         try:
             stdout, stderr = process.communicate(timeout=30)
         except subprocess.TimeoutExpired:
             timed_out = True
-            os.killpg(process.pid, signal.SIGKILL)
+            kill_tree(process)
             stdout, stderr = process.communicate()
     return {"command": command, "returncode": process.returncode, "timeout": timed_out,
             "stdout": stdout.decode("utf-8", errors="replace"), "stderr": stderr.decode("utf-8", errors="replace")}

@@ -8,11 +8,11 @@ The former part runs inside the target process and inline hooks the V8 engine's 
 
 [//]: # (At present, we provide pre-built versions, released on [GitHub Releases][github-releases-url]{target=\_blank})
 
-Manual [GitHub Actions][github-actions-build-url]{target=\_blank} CI runs provide Linux x64 and Windows x64 GNU release artifacts for 7 days. PR runs upload only regression JSON reports. The new CI configuration has not yet been run remotely.
-For Windows GNU, also download the matching `runtime-x86_64-pc-windows-gnu` artifact and put its DLLs beside the target Node executable, or on its DLL search path.
+Manual [GitHub Actions][github-actions-build-url]{target=\_blank} CI runs provide Linux x64 and Windows x64 MSVC release artifacts for 7 days. PR runs upload only regression JSON reports. The native MSVC configuration still awaits its first remote validation.
+Keep `v8_killer_launcher.exe` and `v8_killer_core.dll` together. Windows uses the Microsoft Visual C++ x64 runtime, available on the CI runner; GNU runtime DLLs are no longer part of the artifacts.
 If you need to build it yourself, please refer to [Development](development.md).
 
-CI is configured for official Node 22/24/26 on Linux and Windows GNU/Wine. See the development guide for exact locally tested versions. Native Windows/MSVC and real Electron injection are unverified. macOS is experimental and has no CI tests.
+CI uses Rust 1.91.1 and official Node 22.23.2/24.21.0/26.8.1 on native Linux (`ubuntu-24.04`) and native Windows MSVC (`windows-2022`). Historical local tests used Linux and Windows GNU/Wine; see the development guide. Native MSVC results and real Electron injection remain unverified. macOS is experimental and has no CI tests.
 
 ## Writing Configuration Files
 
@@ -29,7 +29,7 @@ Here is an example script that has been tested on Arch Linux:
 ```bash
 #!/usr/bin/env bash
 export V8_KILLER_CONFIG_FILE_PATH=/path/to/config/file/config.toml
-v8_killer_launcher "/usr/bin/node" "/path/to/js/main.js"
+v8_killer_launcher "/usr/bin/node" -- "/path/to/js/main.js"
 ```
 
 ### Windows
