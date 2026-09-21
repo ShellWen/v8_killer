@@ -8,8 +8,11 @@ The former part runs inside the target process and inline hooks the V8 engine's 
 
 [//]: # (At present, we provide pre-built versions, released on [GitHub Releases][github-releases-url]{target=\_blank})
 
-At present, we do not provide pre-built versions, but you can find continuously built binary files in [GitHub Actions][github-actions-build-url]{target=\_blank}.  
+Manual [GitHub Actions][github-actions-build-url]{target=\_blank} CI runs provide Linux x64 and Windows x64 GNU release artifacts for 7 days. PR runs upload only regression JSON reports. The new CI configuration has not yet been run remotely.
+For Windows GNU, also download the matching `runtime-x86_64-pc-windows-gnu` artifact and put its DLLs beside the target Node executable, or on its DLL search path.
 If you need to build it yourself, please refer to [Development](development.md).
+
+CI is configured for official Node 22/24/26 on Linux and Windows GNU/Wine. See the development guide for exact locally tested versions. Native Windows/MSVC and real Electron injection are unverified. macOS is experimental and has no CI tests.
 
 ## Writing Configuration Files
 
@@ -21,6 +24,7 @@ At present, we have not yet provided a JSON Schema for TOML files. Please refer 
 The launcher will look for the configuration file based on environment variables. You need to set the `V8_KILLER_CONFIG_FILE_PATH` environment variable and point its value to the **absolute path** of the configuration file.  
 
 ### Linux / macOS
+macOS uses the experimental implementation; the example below is validated on Linux only.
 Here is an example script that has been tested on Arch Linux:
 ```bash
 #!/usr/bin/env bash
@@ -33,12 +37,12 @@ You can use `PowerShell` scripts or `cmd` batch files to start the launcher:
 ```powershell
 # PowerShell
 $env:V8_KILLER_CONFIG_FILE_PATH = "C:\path\to\config\file\config.toml"
-Start-Process -FilePath "C:\path\to\executable\node.exe" -ArgumentList "C:\path\to\js\main.js" -NoNewWindow
+& "C:\path\to\v8_killer_launcher.exe" "C:\path\to\executable\node.exe" -- "C:\path\to\js\main.js"
 ```
 ```batch
 :: cmd
 set V8_KILLER_CONFIG_FILE_PATH=C:\path\to\config\file\config.toml
-start "C:\path\to\executable\node.exe" "C:\path\to\js\main.js"
+"C:\path\to\v8_killer_launcher.exe" "C:\path\to\executable\node.exe" -- "C:\path\to\js\main.js"
 ```
 Please note that in Windows, it is allowed to configure global environment variables, but we don't need to do so. We only need to set temporary environment variables in the script.
 

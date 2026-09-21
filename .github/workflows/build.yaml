@@ -1,48 +1,172 @@
-on:
-  push:
-    paths-ignore:
-      - 'docs/**'
-  pull_request:
-    paths-ignore:
-      - 'docs/**'
-
 name: CI
 
+on:
+  pull_request:
+    paths:
+      - 'Cargo.*'
+      - 'crates/**'
+      - 'scripts/**'
+      - '.cargo/**'
+      - 'rust-toolchain*'
+      - 'rustfmt.toml'
+      - '.rustfmt.toml'
+      - '.github/workflows/**'
+      - '!.github/workflows/documentations.yaml'
+  push:
+    branches: [master]
+    paths:
+      - 'Cargo.*'
+      - 'crates/**'
+      - 'scripts/**'
+      - '.cargo/**'
+      - 'rust-toolchain*'
+      - 'rustfmt.toml'
+      - '.rustfmt.toml'
+      - '.github/workflows/**'
+      - '!.github/workflows/documentations.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build:
-    name: build
-    runs-on: ${{ matrix.os }}
+  check:
+    name: check (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
     strategy:
+      fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu]
+    env:
+      PROFILES: ${{ github.event_name == 'pull_request' && 'debug' || 'debug release' }}
+      WINEDEBUG: '-all'
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc-posix
+      CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUNNER: wine
+      CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc-posix
+      CXX_x86_64_pc_windows_gnu: x86_64-w64-mingw32-g++-posix
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Build for Windows/Linux
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest'
-        run: cargo build --locked --verbose --release
-      - name: Build for macOS
-        if: matrix.os == 'macos-latest'
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.91.1
+        with:
+          targets: ${{ matrix.target }}
+          components: clippy, rustfmt
+      - name: Install native tools
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
-          rustup target add aarch64-apple-darwin x86_64-apple-darwin
-          cargo build --locked --verbose --release --target aarch64-apple-darwin
-          cargo build --locked --verbose --release --target x86_64-apple-darwin
-          lipo -create -output target/libv8_killer_core.dylib \
-            target/aarch64-apple-darwin/release/libv8_killer_core.dylib \
-            target/x86_64-apple-darwin/release/libv8_killer_core.dylib
-          lipo -create -output target/v8_killer_launcher \
-            target/aarch64-apple-darwin/release/v8_killer_launcher \
-            target/x86_64-apple-darwin/release/v8_killer_launcher
-      - name: Upload artifact
+          packages=(cmake g++ pkg-config)
+          if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
+            packages+=(gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix wine64 wine)
+          fi
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y "${packages[@]}"
+          if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
+            export WINEPREFIX="$RUNNER_TEMP/wine"
+            echo "WINEPREFIX=$WINEPREFIX" >> "$GITHUB_ENV"
+            wine --version
+            wineboot -u
+            wineserver -w
+            for dll in libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll; do
+              cp "$(x86_64-w64-mingw32-g++-posix -print-file-name="$dll")" "$WINEPREFIX/drive_c/windows/system32/"
+            done
+          fi
+      - name: Native cache identity
+        id: native
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          {
+            cmake --version
+            gcc --version
+            g++ --version
+            if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
+              x86_64-w64-mingw32-gcc-posix -v 2>&1
+              x86_64-w64-mingw32-g++-posix -v 2>&1
+            fi
+            dpkg-query -W | grep -E '^(cmake|gcc|g\+\+|mingw|binutils|libc6)'
+          } | tee native-tools.txt
+          echo "key=$(sha256sum native-tools.txt | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "V8_KILLER_DOBBY_ARCHIVE=$GITHUB_WORKSPACE/.cache/dobby/source.tar.gz" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-workspace-crates: true
+          cache-bin: false
+          key: ubuntu-24.04-${{ matrix.target }}-${{ env.PROFILES }}-${{ steps.native.outputs.key }}-${{ hashFiles('Cargo.toml', 'crates/core/native/**', 'crates/core/build.rs', '.github/workflows/build.yaml') }}
+          cache-directories: .cache/native-tests
+      - uses: actions/cache@v4
+        with:
+          path: .cache/dobby
+          key: dobby-archive-b6e5054dd75c54dfe5a7b9585722af344984de8fbf0e8456b45260cbb0b8b73f
+      - name: Verify Dobby archive
+        run: |
+          mkdir -p .cache/dobby
+          if [[ ! -f $V8_KILLER_DOBBY_ARCHIVE ]]; then
+            curl --fail --location --retry 3 https://codeload.github.com/jmpews/Dobby/tar.gz/223aabced0431525c7d45196f9409fc505d58ac8 -o "$V8_KILLER_DOBBY_ARCHIVE"
+          fi
+          echo "b6e5054dd75c54dfe5a7b9585722af344984de8fbf0e8456b45260cbb0b8b73f  $V8_KILLER_DOBBY_ARCHIVE" | sha256sum --check --strict
+      - uses: actions/cache@v4
+        with:
+          path: .cache/node
+          key: node-official-${{ matrix.target }}-22.23.2-24.21.0-26.8.1-${{ hashFiles('scripts/ci-node.sh') }}
+      - name: Rustfmt
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          cargo fmt --all -- --check
+          python3 scripts/test-ci.py
+      - name: Native ABI regression
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          options=()
+          runner=()
+          suffix=
+          if [[ $TARGET == x86_64-pc-windows-gnu ]]; then
+            options=(-DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc-posix -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++-posix)
+            runner=(wine)
+            suffix=.exe
+          fi
+          cmake -S crates/core/native -B .cache/native-tests -DCMAKE_BUILD_TYPE=Release "${options[@]}"
+          cmake --build .cache/native-tests --parallel 2 --target v8_killer_abi_test
+          "${runner[@]}" ".cache/native-tests/v8_killer_abi_test$suffix"
+      - name: Build, test and lint
+        env:
+          TARGET: ${{ matrix.target }}
+        run: bash scripts/ci-build.sh "$TARGET" "$PROFILES"
+      - name: Upload regression reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-release
+          name: node-reports-${{ matrix.target }}
+          path: reports/*.json
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Upload manual release build
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
           path: |
-            target/release/v8_killer_core.dll
-            target/release/v8_killer_launcher.exe
-            target/release/libv8_killer_core.so
-            target/release/libv8_killer_launcher.so
-            target/release/v8_killer_launcher
-            target/libv8_killer_core.dylib
-            target/v8_killer_launcher
+            target/${{ matrix.target }}/release/v8_killer_launcher
+            target/${{ matrix.target }}/release/v8_killer_launcher.exe
+            target/${{ matrix.target }}/release/libv8_killer_core.so
+            target/${{ matrix.target }}/release/v8_killer_core.dll
+          retention-days: 7
+      - name: Upload Windows runtime libraries
+        if: github.event_name == 'workflow_dispatch' && matrix.target == 'x86_64-pc-windows-gnu'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ matrix.target }}
+          path: |
+            ${{ env.WINEPREFIX }}/drive_c/windows/system32/libgcc_s_seh-1.dll
+            ${{ env.WINEPREFIX }}/drive_c/windows/system32/libstdc++-6.dll
+            ${{ env.WINEPREFIX }}/drive_c/windows/system32/libwinpthread-1.dll
+          retention-days: 7

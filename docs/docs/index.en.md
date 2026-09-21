@@ -26,15 +26,20 @@ There are several common Electron injection solutions at present:
 | Principle                          | Enable Devtools debugging port by special command-line parameters or runtime signals | Replace scripts files / asar resource packages stored on disk     | Inject dynamic link libraries inline hook after program runs, modify the logic of V8 engine script compilation |
 | Can pass integrity checks          | ✅                                                                                    | ❌ The modification of files will cause the digest value to change | ✅                                                                                                              |
 | No security issues                 | ❌ The debugging port cannot be protected, any program can be injected                | ✅                                                                 | ✅ The contents of the injection are specified by the configuration file and do not expose the attack surface   |
-| No need to re-adapt after updating | ✅                                                                                    | ❌                                                                 | ⭕ Only need on Windows platform                                                                                |
+| No need to re-adapt after updating | ✅                                                                                    | ❌                                                                 | ⭕ Depends on exported symbols and V8 ABI                                                                       |
 | Allows modification of any script  | ❌                                                                                    | ✅ Supports substitution of original scripts                       | ✅ Supports substitution or **modification** of original scripts                                                |
 
-Currently, V8 Killer is the only universal injection solution that won't break the integrity of Electron programs.
+The approach modifies compilation input in memory. Real Electron injection has not been verified; symbol/ABI adaptation alone does not establish support.
+
+## Tested platforms and CI
+
+Official Node.js 22.23.2, 24.21.0 and 26.8.1 passed local debug/release injection regressions on Linux x64 and Windows x64 GNU builds under Wine. See [Development](development.md) for results and details.
+
+CI is configured for Node 22/24/26 on Linux x64 and Windows GNU/Wine; it has not yet been run remotely. Windows coverage does not establish native Windows/MSVC support. macOS is experimental, with no CI tests. Electron injection remains unverified; CEF is untested and Deno is unsupported.
 
 The main disadvantages of V8 Killer:
 
-- For Electron builds under Windows platform, some symbol export information is removed by default, so you need to
-  reverse and fill in the EVA of relevant functions yourself;
+- Compatibility depends on the exact build's exported symbols and V8 ABI. Builds without the required exports need explicitly configured function RVAs and matching ABI support;
 - Some Electron programs may check the list of dynamically linked libraries loaded in memory, which may lead V8 Killer
   to be discovered in the target program.
 

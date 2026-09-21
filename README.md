@@ -58,9 +58,9 @@ This project began with an initial idea: injecting scripts into Electron applica
 - Modifying resource files, such as .js or .asar files. However, this approach is highly invasive and cannot pass integrity checks in some software. 
 - Opening a debugging port (`--inspect` or `--inspect-brk`) and injecting scripts using a debugger. However, some software may inspect this parameter or outright block it.
 
-This project takes a different approach by hooking into the compilation functions of the V8 engine, directly modifying the source code passed to the V8 compiler. This allows scripts to be injected into the V8 engine without altering any local files or opening any debugging ports. Through testing, it has been confirmed that this method can be used with any software/framework built on the V8 engine, including but not limited to Node.js, Electron, and Deno.
+This project takes a different approach by hooking into the compilation functions of the V8 engine, directly modifying the source code passed to the V8 compiler. This allows scripts to be injected into the V8 engine without altering any local files or opening any debugging ports. Compatibility depends on the target's exported symbols and V8 ABI.
 
-Currently, this project has been tested exclusively on Linux and Windows. In theory, with minor modifications, it should be possible to run it on macOS. However, this is not currently part of our development roadmap.
+Linux x64 and Windows x64 (GNU cross-build under Wine) have local injection regression coverage. Native Windows/MSVC has not been validated. macOS is experimental and has no CI tests.
 
 This project is divided into two parts: `core` and `launcher`. The `core` constitutes the central component and represents the actual injected payload. The `launcher` is responsible for loading the payload, which is the `core`, into the target program.
 
@@ -70,8 +70,8 @@ So far, we support the following targets:
 
 | Target   | Supported | Note                                                                                                       |
 |----------|-----------|------------------------------------------------------------------------------------------------------------|
-| Node.js  | Yes       |                                                                                                            |
-| Electron | Yes       |                                                                                                            |
+| Node.js  | Tested    | Official Node 22.23.2 / 24.21.0 / 26.8.1, Linux x64 and Windows GNU/Wine, debug/release. |
+| Electron | Unverified | Symbol/ABI adaptation exists; real Electron injection has not been verified.                               |
 | CEF      | Untested  |                                                                                                            |
 | Deno     | No        | Deno remove exports from V8. In future versions, we will introduce pattern matching to address this issue. |
 
@@ -82,7 +82,11 @@ Pattern matching is on the way. [#12](https://github.com/ShellWen/v8_killer/issu
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally. To get a local copy up and running follow these simple example steps.
+See [Getting Started](https://shellwen.github.io/v8_killer/getting-started/) and the [development guide](docs/docs/development.en.md).
+
+CI is configured for official Node **22.23.2, 24.21.0 and 26.8.1**, using Rust **1.91.1** on Ubuntu 24.04: Linux x64 natively and Windows x64 GNU under Wine. PRs build debug once per platform and run 6 Node/profile/platform combinations (198 scenario executions); `master` pushes and manual runs build debug+release and run 12 combinations (396 executions). Node versions run sequentially against the same build. These workflows have not yet been run remotely; local regression results do not establish a green GitHub CI run.
+
+Cargo registry/git, workspace build outputs, native ABI tests, verified official Node downloads and the Dobby source archive are cached. JSON regression logs are retained for 7 days. Binary artifacts are available only from manual CI runs; PRs upload only JSON reports. See the development guide for cache invalidation and first-run checks.
 
 <!-- LICENSE -->
 ## License

@@ -2,7 +2,7 @@
 
 ## 构建 Rust 项目
 
-通过 [rustup](https://rustup.rs/) 安装稳定版 Rust，并安装当前平台的原生编译器和链接器。Windows 使用 MSVC 工具链及 Visual Studio C++ 构建工具。
+通过 [rustup](https://rustup.rs/) 安装 Rust **1.91.1**，以及当前平台的原生编译器和链接器。CI 使用 Ubuntu 24.04，覆盖原生 Linux x64，以及 MinGW-w64 POSIX 交叉构建并通过 Wine 运行的 Windows x64 GNU。原生 Windows/MSVC 构建尚未验证。macOS 为实验性支持，没有 CI 测试。
 
 在仓库根目录构建工作区：
 
@@ -43,9 +43,25 @@ python3 scripts/test-node.py target/debug/v8_killer_launcher /path/to/node
 python3 scripts/test-node.py target/release/v8_killer_launcher /path/to/node
 ```
 
-每个场景对比直接 Node、不匹配规则注入、匹配规则注入三次执行，断言 CJS/ESM 中 Unicode/emoji/空格路径和内嵌 NUL 的真实替换，同时验证导入、live binding、顶层 await、`import.meta`、未匹配模块、参数及退出码。CI 在 debug/release 下运行 Node 22/26 回归。
+每个场景对比直接 Node、不匹配规则注入、匹配规则注入三次执行，断言 CJS/ESM 中 Unicode/emoji/空格路径和内嵌 NUL 的真实替换，同时验证导入、live binding、顶层 await、`import.meta`、未匹配模块、参数及退出码。下方 CI 矩阵覆盖 Node 22/24/26。
 
-官方 Node 22.23.2 和 26.8.1 x64 在原生 Linux 及 Wine 下的 Windows GNU 交叉构建 launcher/core 上，debug/release 均通过全部 11 个场景。Wine 结果不代表原生 Windows 或 MSVC 构建。Windows 二进制使用 `--wine --file-output --report result.json`，通过 `winepath` 转换目标参数。Wine 管道采集基线报 `open EBADF`，普通文件采集通过。原生 Windows、macOS 和非默认代码缓存/流式编译路径仍未验证。
+官方 Node 22.23.2、24.21.0 和 26.8.1 x64 在原生 Linux 及 Wine 下的 Windows GNU 交叉构建 launcher/core 上，debug/release 均通过全部 11 个场景（合计 396 次执行）。Node 24.21.0 取自官方 `latest-v24.x` 清单并校验 SHA256，V8 为 13.6.233.17-node.53，四个组合通过 132/132 次执行。Wine 结果不代表原生 Windows 或 MSVC 构建。Windows 二进制使用 `--wine --file-output --report result.json`，通过 `winepath` 转换目标参数。Wine 管道采集基线报 `open EBADF`，普通文件采集通过。本地 Wine 11 运行需通过 `WINEPATH` 提供 MinGW runtime DLL。原生 Windows、macOS 和非默认代码缓存/流式编译路径仍未验证。
+
+## CI 与缓存
+
+`.github/workflows/build.yaml` 包含两个 Ubuntu 24.04 job：`check (x86_64-unknown-linux-gnu)` 与 `check (x86_64-pc-windows-gnu)`。PR 每个 target 只构建一次 debug，随后依次测试官方 Node **22.23.2 / 24.21.0 / 26.8.1**：6 组合 × 11 场景 × 3 对照 = **198 次执行**。`master` push 和 `workflow_dispatch` 运行 debug 与 release：12 组合，共 **396 次执行**。单元测试、原生 ABI 回归及 Clippy 合并在这些 job 内；Linux 额外检查 rustfmt。Clippy 使用 `-- -D warnings`，不改变 `RUSTFLAGS`；Cargo 命令使用 `--locked`。Windows 测试使用 Wine 与文件输出，不是原生 Windows/MSVC。
+
+功能分支只通过 PR 触发，`master` 通过 push 触发；同一 PR/ref 的旧运行自动取消。Cargo 清单、crates、scripts、Cargo/工具链配置及 CI 工作流变更触发代码检查；仅文档变更运行 docs workflow。手动运行 CI 可执行完整矩阵并获取 release 产物。PR 仅上传 JSON 回归报告，保留 7 天。不自动构建、测试 macOS 或运行 macOS Clippy。
+
+缓存机制：
+
+- `Swatinem/rust-cache@v2` 缓存 Cargo registry/git 与 `target`，启用 `cache-workspace-crates: true`，保留 core build-script 的 `OUT_DIR` 和 CMake 输出。action 清理时保留所选包的 `build`、`.fingerprint`、`deps`，移除顶层二进制及增量目录，由 Cargo 按需恢复。精确命中的缓存不可变，不会每次覆盖。
+- key 隔离 Ubuntu 标签、target、profile 集合、Rust 版本/环境、编译器/CMake/软件包版本及原生源码/build script/workflow。action 追加 Cargo 清单/锁文件哈希，可在相同原生/工具链边界内恢复旧依赖缓存。Rust 源码变更由 Cargo 判断；原生变更不会恢复不兼容的 CMake 输出。即使原生库本身采用 Release 优化，debug/release 仍使用各自 Cargo `OUT_DIR`。
+- 独立 ABI 构建位于 `.cache/native-tests`，作为附加目录使用同一带原生指纹的 Rust 缓存 key，避开 target 清理且不重复缓存整个 target。该路径只用于独立 ABI 构建。
+- Dobby 源码归档按固定 SHA256 共享，每次使用前重新校验，通过 `V8_KILLER_DOBBY_ARCHIVE` 提供给 CMake，CMake 再次校验 SHA256。解压/补丁源码及编译对象保留在各自 CMake 构建树内。官方 Node 下载/解压目录按精确版本与 target 缓存；每次使用按官方版本对应的 `SHASUMS256.txt` 校验归档或可执行文件，Linux 从已校验归档刷新解压结果。
+- 不缓存 Wine prefix。MinGW/Wine 在 job 中统一安装并记录工具/软件包版本，没有远程编译缓存或自建镜像。
+
+这些工作流**尚未远程运行**。本地功能验证不能证明 GitHub 缓存命中或 runner 兼容；首次远程 PR/完整矩阵运行仍需核对冷/热缓存与耗时。合并工作流会移除原有 `build`、`test`、`node`、`clippy_check`、`rustfmt` check contexts，合并前需检查 branch protection/rulesets 中的 required checks。未修改远程分支设置；若路径过滤的工作流被设为 required，仅文档 PR 可能一直 pending。
 
 ## Electron 字符串 ABI 兼容性
 

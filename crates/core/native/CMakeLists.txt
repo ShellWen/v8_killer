@@ -5,8 +5,12 @@ if(POLICY CMP0169)
   cmake_policy(SET CMP0169 OLD)
 endif()
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "")
+set(DOBBY_ARCHIVE https://codeload.github.com/jmpews/Dobby/tar.gz/223aabced0431525c7d45196f9409fc505d58ac8)
+if(DEFINED ENV{V8_KILLER_DOBBY_ARCHIVE})
+  set(DOBBY_ARCHIVE "$ENV{V8_KILLER_DOBBY_ARCHIVE}")
+endif()
 FetchContent_Declare(dobby
-  URL https://codeload.github.com/jmpews/Dobby/tar.gz/223aabced0431525c7d45196f9409fc505d58ac8
+  URL "${DOBBY_ARCHIVE}"
   URL_HASH SHA256=b6e5054dd75c54dfe5a7b9585722af344984de8fbf0e8456b45260cbb0b8b73f)
 FetchContent_GetProperties(dobby)
 if(NOT dobby_POPULATED)

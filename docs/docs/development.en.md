@@ -2,7 +2,7 @@
 
 ## Build the Rust project
 
-Install stable Rust with [rustup](https://rustup.rs/), CMake 3.18 or newer, and the native C/C++ compiler and linker for your platform. On Windows, use the MSVC toolchain with Visual Studio C++ build tools.
+Install Rust **1.91.1** with [rustup](https://rustup.rs/), CMake 3.18 or newer, and the native C/C++ compiler and linker for your platform. CI uses Ubuntu 24.04, native Linux x64 and Windows x64 GNU cross-builds with MinGW-w64 POSIX and Wine. Native Windows/MSVC builds are unverified. macOS is experimental and has no CI tests.
 
 From the repository root, build the workspace:
 
@@ -43,9 +43,25 @@ python3 scripts/test-node.py target/debug/v8_killer_launcher /path/to/node
 python3 scripts/test-node.py target/release/v8_killer_launcher /path/to/node
 ```
 
-Each scenario compares direct Node execution, injection with a nonmatching rule, and injection with a matching rule. It asserts actual CJS/ESM replacements with Unicode/emoji/space paths and embedded NUL, imports, live bindings, top-level await, `import.meta`, unchanged unmatched modules, arguments and exit codes. CI runs the Node 22/26 checks in debug and release.
+Each scenario compares direct Node execution, injection with a nonmatching rule, and injection with a matching rule. It asserts actual CJS/ESM replacements with Unicode/emoji/space paths and embedded NUL, imports, live bindings, top-level await, `import.meta`, unchanged unmatched modules, arguments and exit codes. The CI matrix below covers Node 22/24/26.
 
-Official Node 22.23.2 and 26.8.1 x64 binaries passed all 11 scenarios in debug/release on native Linux and under Wine with Windows GNU cross-built launcher/core binaries. Wine is not native Windows or an MSVC build. Use `--wine --file-output --report result.json` with Windows binaries; `winepath` converts target arguments. Pipe capture failed in the Wine baseline with `open EBADF`; regular-file capture passed. Native Windows, macOS and non-default code-cache/streaming paths remain unverified.
+Official Node 22.23.2, 24.21.0 and 26.8.1 x64 binaries passed all 11 scenarios in debug/release on native Linux and under Wine with Windows GNU cross-built launcher/core binaries (396 executions total). Node 24.21.0 was selected from the official `latest-v24.x` manifest and SHA256-verified; its four combinations passed 132/132 executions with V8 13.6.233.17-node.53. Wine is not native Windows or an MSVC build. Use `--wine --file-output --report result.json` with Windows binaries; `winepath` converts target arguments. Pipe capture failed in the Wine baseline with `open EBADF`; regular-file capture passed. The local Wine 11 run required MinGW runtime DLLs on `WINEPATH`. Native Windows, macOS and non-default code-cache/streaming paths remain unverified.
+
+## CI and caching
+
+`.github/workflows/build.yaml` has two Ubuntu 24.04 jobs: `check (x86_64-unknown-linux-gnu)` and `check (x86_64-pc-windows-gnu)`. PRs build debug once per target, then test official Node **22.23.2 / 24.21.0 / 26.8.1** sequentially: 6 combinations × 11 scenarios × 3 controls = **198 executions**. `master` pushes and `workflow_dispatch` run debug and release: 12 combinations, **396 executions**. Unit tests, native ABI regression and Clippy run in these jobs; Linux also checks rustfmt. Clippy uses `-- -D warnings` without changing `RUSTFLAGS`; Cargo commands use `--locked`. Windows tests use Wine and file output, not native Windows/MSVC.
+
+Feature branches trigger through PRs only; `master` has push coverage. Older runs of the same PR/ref are cancelled. Cargo manifests, crates, scripts, Cargo/toolchain configuration and CI workflows trigger code checks; documentation-only changes use the docs workflow. Run the CI workflow manually to get the full matrix and release artifacts. PRs upload only JSON regression reports, retained for 7 days. No automatic macOS builds, tests or Clippy runs are configured.
+
+Cache behavior:
+
+- `Swatinem/rust-cache@v2` caches Cargo registry/git and `target`, with `cache-workspace-crates: true` so core's build-script `OUT_DIR` and CMake outputs survive cleanup. The action keeps selected packages' `build`, `.fingerprint` and `deps`, but removes top-level binaries and incremental output; Cargo reconstructs those as needed. Exact cache hits are immutable, not overwritten on every run.
+- Keys separate Ubuntu label, target, profile set, Rust version/environment, compiler/CMake/package versions and native sources/build script/workflow. The action adds Cargo manifest/lockfile hashes and may restore a prior dependency cache within the same native/toolchain boundary. Cargo handles Rust source changes; native changes cannot restore incompatible CMake output. Debug/release keep their separate Cargo `OUT_DIR`s even though the native library itself uses Release optimization.
+- Standalone ABI builds live in `.cache/native-tests`, covered by the same native-aware Rust cache key as an additional directory. They are outside `target` to avoid Rust-cache cleanup and duplicate target caching. Only this standalone build uses that path.
+- The Dobby archive is shared by its pinned SHA256 and rechecked before use; `V8_KILLER_DOBBY_ARCHIVE` supplies it to CMake, which also verifies its SHA256. Extracted/patched sources and compiled objects stay in each CMake build tree. Official Node downloads/extractions are cached by exact versions and target; each use verifies the archive/executable against the official version-specific `SHASUMS256.txt`, and Linux extraction is refreshed from the verified archive.
+- Wine prefixes are never cached. MinGW/Wine installation is centralized in the job, with tool/package versions logged. There is no remote compiler cache or custom image.
+
+These workflows have **not yet run remotely**. Local functional tests do not prove GitHub cache hits or runner compatibility. The first remote PR/full-matrix runs must verify both cold and warm cache behavior and timings. Consolidation removes the old `build`, `test`, `node`, `clippy_check` and `rustfmt` check contexts: inspect branch protection/rulesets for required checks before merging. Remote branch settings have not been changed; path-filtered workflows may remain pending if required for documentation-only PRs.
 
 ## Electron string ABI compatibility
 
