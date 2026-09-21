@@ -1,5 +1,7 @@
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
+#include <cinttypes>
 
 extern "C" int v8_killer_instrument(void *);
 extern "C" int v8_killer_instrument_module(void *);
@@ -51,20 +53,39 @@ static NOINLINE MaybeLocal compile_module(void *isolate, uintptr_t *source,
 }
 
 int main() {
+  std::setvbuf(stdout, nullptr, _IONBF, 0);
   uintptr_t source = 10;
   auto volatile internal = compile_internal;
   auto volatile public_compile = compile;
-  if (v8_killer_instrument((void *)compile_internal)) return 1;
+  std::printf("CompileFunctionInternal=%p CompileFunction=%p CompileModule=%p source=%p\n",
+              (void *)compile_internal, (void *)compile, (void *)compile_module, (void *)&source);
+  auto status = v8_killer_instrument((void *)compile_internal);
+  std::printf("CompileFunctionInternal hook status=%d\n", status);
+  if (status) return 1;
   auto result = internal(Local{(void *)1}, &source, 2, (Local *)3, 4, (Local *)5, 6, 7, (Local *)8);
+  std::printf("CompileFunctionInternal: context=%p expected=%p source_ptr=%p expected=%p source=%" PRIuPTR " expected=17 result=%" PRIuPTR " expected=53\n",
+              seen_context, (void *)1, seen_source, (void *)&source, source, result.value);
   if (seen_context != (void *)1 || seen_source != &source || source != 17 || result.value != 53) return 2;
-  if (v8_killer_instrument((void *)compile)) return 3;
+  status = v8_killer_instrument((void *)compile);
+  std::printf("CompileFunction hook status=%d\n", status);
+  if (status) return 3;
   source = 10;
+  seen_context = nullptr;
+  seen_source = nullptr;
   result = public_compile(Local{(void *)1}, &source, 2, (Local *)3, 4, (Local *)5, 6, 7);
+  std::printf("CompileFunction: context=%p expected=%p source_ptr=%p expected=%p source=%" PRIuPTR " expected=17 result=%" PRIuPTR " expected=45\n",
+              seen_context, (void *)1, seen_source, (void *)&source, source, result.value);
   if (source != 17 || result.value != 45) return 4;
   auto volatile module = compile_module;
-  if (v8_killer_instrument_module((void *)compile_module)) return 5;
+  status = v8_killer_instrument_module((void *)compile_module);
+  std::printf("CompileModule hook status=%d\n", status);
+  if (status) return 5;
   source = 10;
+  seen_source = nullptr;
   result = module((void *)9, &source, 6, 7);
+  std::printf("CompileModule: isolate=%p expected=%p source_ptr=%p expected=%p source=%" PRIuPTR " expected=21 result=%" PRIuPTR " expected=43\n",
+              seen_isolate, (void *)9, seen_source, (void *)&source, source, result.value);
   if (seen_isolate != (void *)9 || seen_source != &source || source != 21 || result.value != 43) return 6;
+  std::puts("Native ABI checks passed");
   return 0;
 }
