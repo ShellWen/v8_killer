@@ -12,7 +12,7 @@ Manual [GitHub Actions][github-actions-build-url]{target=\_blank} CI runs provid
 Keep `v8_killer_launcher.exe` and `v8_killer_core.dll` together. Windows uses the Microsoft Visual C++ x64 runtime, available on the CI runner; GNU runtime DLLs are no longer part of the artifacts.
 If you need to build it yourself, please refer to [Development](development.md).
 
-CI uses Rust 1.91.1 and official Node 22.23.2/24.21.0/26.8.1 on native Linux (`ubuntu-24.04`) and native Windows MSVC (`windows-2022`). Historical local tests used Linux and Windows GNU/Wine; see the development guide. Native MSVC results and real Electron injection remain unverified. macOS is experimental and has no CI tests.
+CI covers Node 22/24/26 on Linux x64 and Windows x64 (MSVC). macOS support is experimental, with no CI tests.
 
 ## Writing Configuration Files
 

@@ -60,7 +60,7 @@ This project began with an initial idea: injecting scripts into Electron applica
 
 This project takes a different approach by hooking into the compilation functions of the V8 engine, directly modifying the source code passed to the V8 compiler. This allows scripts to be injected into the V8 engine without altering any local files or opening any debugging ports. Compatibility depends on the target's exported symbols and V8 ABI.
 
-Linux x64 and Windows x64 (GNU cross-build under Wine) have local injection regression coverage. Native Windows/MSVC has not been validated. macOS is experimental and has no CI tests.
+CI covers Node.js 22, 24 and 26 on Linux x64 and Windows x64 (MSVC). macOS support is experimental, with no CI tests.
 
 This project is divided into two parts: `core` and `launcher`. The `core` constitutes the central component and represents the actual injected payload. The `launcher` is responsible for loading the payload, which is the `core`, into the target program.
 
@@ -70,7 +70,7 @@ So far, we support the following targets:
 
 | Target   | Supported | Note                                                                                                       |
 |----------|-----------|------------------------------------------------------------------------------------------------------------|
-| Node.js  | Tested    | Official Node 22.23.2 / 24.21.0 / 26.8.1, Linux x64 and Windows GNU/Wine, debug/release. |
+| Node.js  | Tested    | Node 22 / 24 / 26; Linux x64 and Windows x64 CI. |
 | Electron | Unverified | Symbol/ABI adaptation exists; real Electron injection has not been verified.                               |
 | CEF      | Untested  |                                                                                                            |
 | Deno     | No        | Deno remove exports from V8. In future versions, we will introduce pattern matching to address this issue. |
@@ -84,9 +84,9 @@ Pattern matching is on the way. [#12](https://github.com/ShellWen/v8_killer/issu
 
 See [Getting Started](https://shellwen.github.io/v8_killer/getting-started/) and the [development guide](docs/docs/development.en.md).
 
-CI is configured for official Node **22.23.2, 24.21.0 and 26.8.1**, using Rust **1.91.1**: native Linux x64 on `ubuntu-24.04` and native Windows x64 MSVC on `windows-2022`. PRs build debug once per platform and run 6 Node/profile/platform combinations (198 scenario executions); `master` pushes and manual runs build debug+release and run 12 combinations (396 executions). Node versions run sequentially against the same build. Previous CI runs used GNU/Wine; the new native MSVC configuration still requires remote validation.
+CI runs Node **22.23.2, 24.21.0 and 26.8.1** on native Linux x64 and Windows x64 (MSVC). PRs test debug builds; `master` pushes and manual runs test debug and release builds. Each build is reused across all three Node versions.
 
-Cargo registry/git, workspace build outputs, native ABI tests, verified official Node downloads and the Dobby source archive are cached. JSON regression logs are retained for 7 days. Binary artifacts are available only from manual CI runs; PRs upload only JSON reports. See the development guide for cache invalidation and first-run checks.
+Cargo dependencies, Rust and native build outputs, Node downloads and the Dobby archive are cached. Reports are retained for 7 days. Run CI manually to download release binaries.
 
 <!-- LICENSE -->
 ## License

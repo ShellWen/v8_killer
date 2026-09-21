@@ -2,7 +2,7 @@
 
 ## Build the Rust project
 
-Install Rust **1.91.1** with [rustup](https://rustup.rs/), CMake 3.18 or newer, and the native C/C++ compiler and linker for your platform. CI uses native Linux x64 on `ubuntu-24.04` and native Windows x64 MSVC on `windows-2022` (Visual Studio 2022). Windows development requires the C++ desktop workload and Windows SDK; use an x64 developer shell. The new native MSVC configuration awaits remote validation. macOS is experimental and has no CI tests.
+Install Rust **1.91.1** with [rustup](https://rustup.rs/), CMake 3.18 or newer, and a native C/C++ compiler and linker. On Windows, install Visual Studio 2022 with the C++ desktop workload and Windows SDK, then use an x64 developer shell.
 
 From the repository root, build the workspace:
 
@@ -47,7 +47,6 @@ On native Windows, use `python scripts/test-node.py target/debug/v8_killer_launc
 
 Each scenario compares direct Node execution, injection with a nonmatching rule, and injection with a matching rule. It asserts actual CJS/ESM replacements with Unicode/emoji/space paths and embedded NUL, imports, live bindings, top-level await, `import.meta`, unchanged unmatched modules, arguments and exit codes. The CI matrix below covers Node 22/24/26.
 
-Historical local validation: official Node 22.23.2, 24.21.0 and 26.8.1 x64 binaries passed all 11 scenarios in debug/release on native Linux and under Wine with Windows GNU cross-built launcher/core binaries (396 executions total). Node 24.21.0 was selected from the official `latest-v24.x` manifest and SHA256-verified; its four combinations passed 132/132 executions with V8 13.6.233.17-node.53. Wine is not native Windows or an MSVC build. For local Wine execution, add `--wine --file-output --report result.json`; `winepath` converts target arguments. Pipe capture failed in the Wine baseline with `open EBADF`; regular-file capture passed. The local Wine 11 run required MinGW runtime DLLs on `WINEPATH`. Native Windows, macOS and non-default code-cache/streaming paths remain unverified.
 
 ## CI and caching
 
@@ -63,7 +62,6 @@ Cache behavior:
 - The Dobby archive is shared by its pinned SHA256 and rechecked before use; `V8_KILLER_DOBBY_ARCHIVE` supplies it to CMake, which also verifies its SHA256. Extracted/patched sources and compiled objects stay in each CMake build tree. Official Node downloads/extractions are cached by exact versions and target; each use verifies the archive/executable against the official version-specific `SHASUMS256.txt`, and Linux extraction is refreshed from the verified archive.
 - The Dobby download cache enables cross-OS archives; compiled native caches remain OS-specific. There is no remote compiler cache or custom image.
 
-Earlier CI ran with GNU/Wine. The new native MSVC job has **not yet been validated remotely**; historical local GNU/Wine results do not prove native Windows compatibility. Its first remote PR/full-matrix runs must verify execution, DLL loading and cold/warm cache behavior. The Windows check context changes to `check (x86_64-pc-windows-msvc)`; update required checks if needed. Remote branch settings have not been changed; path-filtered workflows may remain pending if required for documentation-only PRs.
 
 ## Electron string ABI compatibility
 
@@ -77,7 +75,7 @@ Run the standalone fake-function regression (no core library constructor, native
 cargo test --locked -p v8_killer_core --test string_abi
 ```
 
-Symbol/ABI adaptation and pure Rust checks do **not** establish Electron injection support. Real Electron injection has not been verified. The separate clean Electron 28.3.3/44.4.3 application baseline only verifies ordinary module loading; Windows/macOS observations are static export checks.
+Electron injection is not covered by CI.
 
 ## Develop the documentation
 

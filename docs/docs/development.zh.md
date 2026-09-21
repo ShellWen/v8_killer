@@ -2,7 +2,7 @@
 
 ## 构建 Rust 项目
 
-通过 [rustup](https://rustup.rs/) 安装 Rust **1.91.1**，以及当前平台的原生编译器和链接器。CI 在 `ubuntu-24.04` 上运行原生 Linux x64，在 `windows-2022` 上使用 Visual Studio 2022 运行原生 Windows x64 MSVC。Windows 开发需安装 C++ 桌面工作负载和 Windows SDK，并使用 x64 开发者 shell。新的原生 MSVC 配置仍待远程验证。macOS 为实验性支持，没有 CI 测试。
+通过 [rustup](https://rustup.rs/) 安装 Rust **1.91.1**、CMake 3.18 或更新版本，以及当前平台的 C/C++ 编译器和链接器。Windows 需安装 Visual Studio 2022 的 C++ 桌面工作负载和 Windows SDK，并使用 x64 开发者 shell。
 
 在仓库根目录构建工作区：
 
@@ -47,7 +47,6 @@ python3 scripts/test-node.py target/release/v8_killer_launcher /path/to/node
 
 每个场景对比直接 Node、不匹配规则注入、匹配规则注入三次执行，断言 CJS/ESM 中 Unicode/emoji/空格路径和内嵌 NUL 的真实替换，同时验证导入、live binding、顶层 await、`import.meta`、未匹配模块、参数及退出码。下方 CI 矩阵覆盖 Node 22/24/26。
 
-历史本地验证：官方 Node 22.23.2、24.21.0 和 26.8.1 x64 在原生 Linux 及 Wine 下的 Windows GNU 交叉构建 launcher/core 上，debug/release 均通过全部 11 个场景（合计 396 次执行）。Node 24.21.0 取自官方 `latest-v24.x` 清单并校验 SHA256，V8 为 13.6.233.17-node.53，四个组合通过 132/132 次执行。Wine 结果不代表原生 Windows 或 MSVC 构建。本地使用 Wine 执行时添加 `--wine --file-output --report result.json`，通过 `winepath` 转换目标参数。Wine 管道采集基线报 `open EBADF`，普通文件采集通过。本地 Wine 11 运行需通过 `WINEPATH` 提供 MinGW runtime DLL。原生 Windows、macOS 和非默认代码缓存/流式编译路径仍未验证。
 
 ## CI 与缓存
 
@@ -63,7 +62,6 @@ python3 scripts/test-node.py target/release/v8_killer_launcher /path/to/node
 - Dobby 源码归档按固定 SHA256 共享，每次使用前重新校验，通过 `V8_KILLER_DOBBY_ARCHIVE` 提供给 CMake，CMake 再次校验 SHA256。解压/补丁源码及编译对象保留在各自 CMake 构建树内。官方 Node 下载/解压目录按精确版本与 target 缓存；每次使用按官方版本对应的 `SHASUMS256.txt` 校验归档或可执行文件，Linux 从已校验归档刷新解压结果。
 - Dobby 下载缓存启用跨 OS 归档共享；原生编译缓存仍按 OS 隔离。没有远程编译缓存或自建镜像。
 
-此前 CI 已使用 GNU/Wine 运行。新的原生 MSVC job **尚未完成远程验证**；历史本地 GNU/Wine 结果不能证明原生 Windows 兼容。首次远程 PR/完整矩阵运行需核对执行结果、DLL 加载和冷/热缓存。Windows check context 变为 `check (x86_64-pc-windows-msvc)`，如有需要请同步 required checks。未修改远程分支设置；若路径过滤的工作流被设为 required，仅文档 PR 可能一直 pending。
 
 ## Electron 字符串 ABI 兼容性
 
@@ -77,7 +75,7 @@ Electron 44.4.3 使用 V8 15.2.124.28-electron.0。Linux x64 和 macOS x64/arm64
 cargo test --locked -p v8_killer_core --test string_abi
 ```
 
-符号/ABI 适配与纯 Rust 检查**不代表** Electron 注入支持已验证。尚未验证真实 Electron 注入。独立的 Electron 28.3.3/44.4.3 普通应用基线仅验证正常模块加载；Windows/macOS 结果仅为静态导出检查。
+Electron 注入不在 CI 测试范围内。
 
 ## 开发文档
 

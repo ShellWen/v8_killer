@@ -8,11 +8,11 @@ V8 Killer 分为 `core` 核心部分，与 `launcher` 启动器部分。
 
 [//]: # (目前，我们提供预构建版本，发布在 [GitHub Releases][github-releases-url]{target=\_blank} 中)
 
-手动运行 [GitHub Actions][github-actions-build-url]{target=\_blank} CI 可生成 Linux x64 与 Windows x64 MSVC release 构建产物，保留 7 天。PR 仅上传回归 JSON 报告。原生 MSVC 配置仍待首次远程验证。
+手动运行 [GitHub Actions][github-actions-build-url]{target=\_blank} CI 可生成 Linux x64 与 Windows x64 MSVC release 构建产物，保留 7 天。PR 仅上传回归 JSON 报告。
 请将 `v8_killer_launcher.exe` 与 `v8_killer_core.dll` 放在同一目录。Windows 使用 Microsoft Visual C++ x64 runtime，CI runner 已提供；产物不再附带 GNU runtime DLL。
 如需自行构建，请参考 [开发](development.md)。
 
-CI 使用 Rust 1.91.1 和官方 Node 22.23.2/24.21.0/26.8.1，覆盖原生 Linux（`ubuntu-24.04`）与原生 Windows MSVC（`windows-2022`）。历史本地测试使用 Linux 和 Windows GNU/Wine，详见开发文档。原生 MSVC 结果与真实 Electron 注入仍未验证。macOS 为实验性支持，没有 CI 测试。
+CI 覆盖 Node 22/24/26，以及 Linux x64 和 Windows x64（MSVC）。macOS 为实验性支持，没有 CI 测试。
 
 ## 编写配置文件
 

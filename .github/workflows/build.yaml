@@ -81,7 +81,6 @@ jobs:
             if [[ $TARGET == x86_64-pc-windows-msvc ]]; then
               command -v cl
               cl 2>&1 || true
-              "$(cygpath -u "$VCToolsInstallDir")/bin/Hostx64/x64/link.exe" -? 2>&1
               printf '%s\n' "$VCToolsVersion" "$WindowsSDKVersion" "$VCToolsInstallDir" "$WindowsSdkDir"
             else
               gcc --version

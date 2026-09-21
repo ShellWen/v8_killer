@@ -30,9 +30,9 @@
 
 ## 已测试平台与 CI
 
-官方 Node.js 22.23.2、24.21.0 和 26.8.1 已在 Linux x64 及 Wine 下的 Windows x64 GNU 构建上通过本地 debug/release 注入回归。结果及细节见 [开发](development.md)。
+CI 覆盖 Node.js 22、24、26，以及 Linux x64 和 Windows x64（MSVC）。构建与测试方法见[开发文档](development.md)。
 
-CI 使用 Rust 1.91.1，已配置 Node 22.23.2/24.21.0/26.8.1 的原生 Linux x64（`ubuntu-24.04`）与原生 Windows x64 MSVC（`windows-2022`）覆盖。此前 CI 使用 GNU/Wine；新的原生 MSVC 配置仍待远程验证。历史 GNU/Wine 结果不代表原生 MSVC 已验证。macOS 为实验性支持，没有 CI 测试。Electron 注入仍未验证，CEF 未测试，Deno 不支持。
+macOS 为实验性支持，没有 CI 测试。Electron 和 CEF 未测试，Deno 不支持。
 
 V8 Killer 的缺点主要集中在以下几点：
 
