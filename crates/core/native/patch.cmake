@@ -19,6 +19,11 @@ endif()
 file(WRITE "${windows}" "${content}")
 
 set(decoder "${dobby_SOURCE_DIR}/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.c")
+set(arena "${dobby_SOURCE_DIR}/source/MemoryAllocator/NearMemoryArena.cc")
+file(READ "${arena}" content)
+string(REPLACE "#if defined(WIN32)" "#if defined(_WIN32)" content "${content}")
+file(WRITE "${arena}" "${content}")
+
 file(READ "${decoder}" content)
 string(FIND "${content}" "#define op3_flag" macro_start)
 string(FIND "${content}" "#define op2_flag" macro_end)
