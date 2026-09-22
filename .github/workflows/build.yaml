@@ -81,6 +81,7 @@ jobs:
             if [[ $TARGET == x86_64-pc-windows-msvc ]]; then
               command -v cl
               cl 2>&1 || true
+              echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=$(cygpath -w "${VCToolsInstallDir}bin/Hostx64/x64/link.exe")" >> "$GITHUB_ENV"
               printf '%s\n' "$VCToolsVersion" "$WindowsSDKVersion" "$VCToolsInstallDir" "$WindowsSdkDir"
             else
               gcc --version
