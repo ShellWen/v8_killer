@@ -1,42 +1,18 @@
-set(bridge "${dobby_SOURCE_DIR}/source/TrampolineBridge/ClosureTrampolineBridge/x64/closure-bridge-x64.cc")
-file(READ "${bridge}" content)
-if(NOT content MATCHES "V8_KILLER_WINDOWS_ENTRY")
-  string(REPLACE "  // prepare args" "#if defined(_WIN32)\n  // V8_KILLER_WINDOWS_ENTRY: function entry has RSP = 8 mod 16; the saved context aligns it.\n  _ mov(rcx, rsp);\n  _ mov(rdx, Address(rsp, 8 + 8 + 16 * 8 + 2 * 8));\n  _ sub(rsp, Immediate(32, 32));\n  _ CallFunction(ExternalReference((void *)intercept_routing_common_bridge_handler));\n  _ add(rsp, Immediate(32, 32));\n#else\n  // prepare args" content "${content}")
-  string(REPLACE "  // ======= RegisterContext Restore" "#endif\n  // ======= RegisterContext Restore" content "${content}")
-  file(WRITE "${bridge}" "${content}")
+find_package(Git REQUIRED)
+set(patch "${CMAKE_CURRENT_LIST_DIR}/dobby.patch")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${patch}")
+execute_process(
+  COMMAND "${GIT_EXECUTABLE}" apply --reverse --check "${patch}"
+  WORKING_DIRECTORY "${dobby_SOURCE_DIR}"
+  RESULT_VARIABLE applied
+  OUTPUT_QUIET ERROR_QUIET)
+if(NOT applied EQUAL 0)
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" apply "${patch}"
+    WORKING_DIRECTORY "${dobby_SOURCE_DIR}"
+    RESULT_VARIABLE result
+    ERROR_VARIABLE error)
+  if(NOT result EQUAL 0)
+    message(FATAL_ERROR "Cannot apply Dobby patch: ${error}")
+  endif()
 endif()
-set(globals "${dobby_SOURCE_DIR}/cmake/Globals.cmake")
-file(READ "${globals}" content)
-string(REPLACE "if(PROCESSOR.AARCH64 OR PROCESSOR.ARM)" "if(PROCESSOR.ARM)" content "${content}")
-string(REPLACE "elseif(PROCESSOR.X86 OR PROCESSOR.X86_64)" "elseif(PROCESSOR.X86 OR PROCESSOR.X86_64 OR PROCESSOR.AARCH64)" content "${content}")
-file(WRITE "${globals}" "${content}")
-
-set(windows "${dobby_SOURCE_DIR}/source/UserMode/UnifiedInterface/platform-windows.cc")
-file(READ "${windows}" content)
-if(NOT content MATCHES "PAGE_READWRITE")
-  string(REPLACE "else if (kReadExecute == access)" "else if (kReadWrite == access)\n    return PAGE_READWRITE;\n  else if (kReadExecute == access)" content "${content}")
-endif()
-file(WRITE "${windows}" "${content}")
-
-set(decoder "${dobby_SOURCE_DIR}/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.c")
-set(arena "${dobby_SOURCE_DIR}/source/MemoryAllocator/NearMemoryArena.cc")
-file(READ "${arena}" content)
-string(REPLACE "#if defined(WIN32)" "#if defined(_WIN32)" content "${content}")
-file(WRITE "${arena}" "${content}")
-
-file(READ "${decoder}" content)
-string(FIND "${content}" "#define op3_flag" macro_start)
-string(FIND "${content}" "#define op2_flag" macro_end)
-string(SUBSTRING "${content}" 0 ${macro_start} before_macro)
-string(SUBSTRING "${content}" ${macro_end} -1 after_macro)
-# MSVC drops the nested array designators in the upstream operand table initializer.
-file(WRITE "${decoder}" "${before_macro}#define op3_flag(x, f, o0, o1, o2) { #x, { { #o0 }, { #o1 }, { #o2 } }, (f) }\n${after_macro}")
-set(decoder_header "${dobby_SOURCE_DIR}/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.h")
-file(READ "${decoder_header}" content)
-string(REPLACE "  struct {\n    uint8_t code;\n    uint8_t type;\n  };\n  uint8_t data[2];" "  uint8_t data[2];\n  struct {\n    uint8_t code;\n    uint8_t type;\n  };" content "${content}")
-file(WRITE "${decoder_header}" "${content}")
-
-set(build_file "${dobby_SOURCE_DIR}/CMakeLists.txt")
-file(READ "${build_file}" content)
-string(REPLACE "string(TIMESTAMP TODAY \"%Y%m%d\")" "set(TODAY \"20210615-223aabced043\")" content "${content}")
-file(WRITE "${build_file}" "${content}")

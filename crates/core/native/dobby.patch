@@ -1,0 +1,92 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -340,7 +340,7 @@
+   )
+ 
+ # add build version
+-string(TIMESTAMP TODAY "%Y%m%d")
++set(TODAY "20210615-223aabced043")
+ set(VERSION_REVISION "-${TODAY}")
+ if (EXISTS "${CMAKE_SOURCE_DIR}/.git")
+   execute_process(
+--- a/cmake/Globals.cmake
++++ b/cmake/Globals.cmake
+@@ -71,10 +71,10 @@
+   set(SYSTEM.macOS 1)
+   set(SYSTEM.Darwin 1)
+ elseif(CMAKE_SYSTEM_NAME MATCHES "^Darwin")
+-  if(PROCESSOR.AARCH64 OR PROCESSOR.ARM)
++  if(PROCESSOR.ARM)
+     set(CMAKE_SYSTEM_NAME "iOS")
+     set(SYSTEM.iOS 1)
+-  elseif(PROCESSOR.X86 OR PROCESSOR.X86_64)
++  elseif(PROCESSOR.X86 OR PROCESSOR.X86_64 OR PROCESSOR.AARCH64)
+     set(CMAKE_SYSTEM_NAME "macOS")
+     set(SYSTEM.macOS 1)
+   endif()
+--- a/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.c
++++ b/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.c
+@@ -47,11 +47,7 @@
+ #define OP_EMPTY_8 OP_EMPTY_4, OP_EMPTY_4
+ #endif
+ 
+-#define op3_flag(x, f, o0, o1, o2)                                                                                     \
+-  {                                                                                                                    \
+-    .name = #x, .flags = (f), .operands[0] = {.data = #o0}, .operands[1] = {.data = #o1},                              \
+-    .operands[2] = {.data = #o2},                                                                                      \
+-  }
++#define op3_flag(x, f, o0, o1, o2) { #x, { { #o0 }, { #o1 }, { #o2 } }, (f) }
+ #define op2_flag(x, f, o0, o1) op3_flag(x, f, o0, o1, __)
+ #define op1_flag(x, f, o0) op2_flag(x, f, o0, __)
+ #define op0_flag(x, f) op1_flag(x, f, __)
+--- a/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.h
++++ b/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.h
+@@ -51,11 +51,11 @@
+ } x86_insn_prefix_t;
+ 
+ typedef union {
++  uint8_t data[2];
+   struct {
+     uint8_t code;
+     uint8_t type;
+   };
+-  uint8_t data[2];
+ } x86_insn_operand_spec_t;
+ 
+ typedef struct {
+--- a/source/TrampolineBridge/ClosureTrampolineBridge/x64/closure-bridge-x64.cc
++++ b/source/TrampolineBridge/ClosureTrampolineBridge/x64/closure-bridge-x64.cc
+@@ -66,6 +66,14 @@
+ 
+   // ======= Jump to UnifiedInterface Bridge Handle =======
+ 
++#if defined(_WIN32)
++  // V8_KILLER_WINDOWS_ENTRY: function entry has RSP = 8 mod 16; the saved context aligns it.
++  _ mov(rcx, rsp);
++  _ mov(rdx, Address(rsp, 8 + 8 + 16 * 8 + 2 * 8));
++  _ sub(rsp, Immediate(32, 32));
++  _ CallFunction(ExternalReference((void *)intercept_routing_common_bridge_handler));
++  _ add(rsp, Immediate(32, 32));
++#else
+   // prepare args
+   // @rdi: data_address
+   // @rsi: RegisterContext stack address
+@@ -97,6 +105,7 @@
+   // pop rax
+   __ EmitBuffer((void *)"\x58", 1);
+ 
++#endif
+   // ======= RegisterContext Restore =======
+ 
+   // restore sp placeholder stack
+--- a/source/UserMode/UnifiedInterface/platform-windows.cc
++++ b/source/UserMode/UnifiedInterface/platform-windows.cc
+@@ -10,6 +10,8 @@
+ int GetProtectionFromMemoryPermission(MemoryPermission access) {
+   if (kReadWriteExecute == access)
+     return PAGE_EXECUTE_READWRITE;
++  else if (kReadWrite == access)
++    return PAGE_READWRITE;
+   else if (kReadExecute == access)
+     return PAGE_EXECUTE_READ;
+ }
