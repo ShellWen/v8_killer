@@ -81,6 +81,7 @@ jobs:
             if [[ $TARGET == x86_64-pc-windows-msvc ]]; then
               command -v cl
               cl 2>&1 || true
+              echo "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=$(cygpath -w "${VCToolsInstallDir}bin/Hostx64/x64/link.exe")" >> "$GITHUB_ENV"
               printf '%s\n' "$VCToolsVersion" "$WindowsSDKVersion" "$VCToolsInstallDir" "$WindowsSdkDir"
             else
               gcc --version
@@ -124,6 +125,7 @@ jobs:
           fi
           python scripts/test-ci.py
       - name: Native ABI regression
+        id: native_abi
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -136,6 +138,17 @@ jobs:
           cmake -S crates/core/native -B ".cache/native-tests/$TARGET" -DCMAKE_BUILD_TYPE=Release "${options[@]}"
           cmake --build ".cache/native-tests/$TARGET" --config Release --parallel 2 --target v8_killer_abi_test
           ".cache/native-tests/$TARGET/$executable"
+      - name: Upload native ABI diagnostics
+        if: failure() && steps.native_abi.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-abi-${{ matrix.target }}
+          path: |
+            .cache/native-tests/${{ matrix.target }}/abi_test.asm
+            .cache/native-tests/${{ matrix.target }}/Release/v8_killer_abi_test.exe
+            .cache/native-tests/${{ matrix.target }}/v8_killer_abi_test
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Build, test and lint
         env:
           TARGET: ${{ matrix.target }}
