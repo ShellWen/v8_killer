@@ -18,6 +18,15 @@ if(NOT content MATCHES "PAGE_READWRITE")
 endif()
 file(WRITE "${windows}" "${content}")
 
+set(decoder "${dobby_SOURCE_DIR}/source/InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.c")
+file(READ "${decoder}" content)
+string(FIND "${content}" "#define op3_flag" macro_start)
+string(FIND "${content}" "#define op2_flag" macro_end)
+string(SUBSTRING "${content}" 0 ${macro_start} before_macro)
+string(SUBSTRING "${content}" ${macro_end} -1 after_macro)
+# MSVC drops the nested array designators in the upstream operand table initializer.
+file(WRITE "${decoder}" "${before_macro}#define op3_flag(x, f, o0, o1, o2) { #x, { {{ (#o0)[0], (#o0)[1] }}, {{ (#o1)[0], (#o1)[1] }}, {{ (#o2)[0], (#o2)[1] }} }, (f) }\n${after_macro}")
+
 set(build_file "${dobby_SOURCE_DIR}/CMakeLists.txt")
 file(READ "${build_file}" content)
 string(REPLACE "string(TIMESTAMP TODAY \"%Y%m%d\")" "set(TODAY \"20210615-223aabced043\")" content "${content}")
