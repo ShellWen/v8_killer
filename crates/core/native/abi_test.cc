@@ -52,13 +52,27 @@ static NOINLINE MaybeLocal compile_module(void *isolate, uintptr_t *source,
   return MaybeLocal((uintptr_t)isolate + *source + options + reason);
 }
 
+static void print_entry(const char *name, const void *address) {
+  auto bytes = static_cast<const unsigned char *>(address);
+  std::printf("%s entry:", name);
+  for (size_t i = 0; i < 32; ++i) std::printf(" %02x", static_cast<unsigned int>(bytes[i]));
+  std::putchar('\n');
+}
+
 int main() {
   std::setvbuf(stdout, nullptr, _IONBF, 0);
   uintptr_t source = 10;
   auto volatile internal = compile_internal;
   auto volatile public_compile = compile;
+  auto baseline = public_compile(Local{(void *)1}, &source, 2, (Local *)3, 4, (Local *)5, 6, 7);
+  std::printf("CompileFunction baseline: source=%" PRIuPTR " expected=10 result=%" PRIuPTR " expected=38\n",
+              source, baseline.value);
+  if (source != 10 || baseline.value != 38) return 7;
   std::printf("CompileFunctionInternal=%p CompileFunction=%p CompileModule=%p source=%p\n",
               (void *)compile_internal, (void *)compile, (void *)compile_module, (void *)&source);
+  print_entry("CompileFunctionInternal original", (void *)compile_internal);
+  print_entry("CompileFunction original", (void *)compile);
+  print_entry("CompileModule original", (void *)compile_module);
   auto status = v8_killer_instrument((void *)compile_internal);
   std::printf("CompileFunctionInternal hook status=%d\n", status);
   if (status) return 1;
@@ -69,6 +83,7 @@ int main() {
   status = v8_killer_instrument((void *)compile);
   std::printf("CompileFunction hook status=%d\n", status);
   if (status) return 3;
+  print_entry("CompileFunction patched", (void *)compile);
   source = 10;
   seen_context = nullptr;
   seen_source = nullptr;

@@ -124,6 +124,7 @@ jobs:
           fi
           python scripts/test-ci.py
       - name: Native ABI regression
+        id: native_abi
         env:
           TARGET: ${{ matrix.target }}
         run: |
@@ -136,6 +137,17 @@ jobs:
           cmake -S crates/core/native -B ".cache/native-tests/$TARGET" -DCMAKE_BUILD_TYPE=Release "${options[@]}"
           cmake --build ".cache/native-tests/$TARGET" --config Release --parallel 2 --target v8_killer_abi_test
           ".cache/native-tests/$TARGET/$executable"
+      - name: Upload native ABI diagnostics
+        if: failure() && steps.native_abi.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-abi-${{ matrix.target }}
+          path: |
+            .cache/native-tests/${{ matrix.target }}/abi_test.asm
+            .cache/native-tests/${{ matrix.target }}/Release/v8_killer_abi_test.exe
+            .cache/native-tests/${{ matrix.target }}/v8_killer_abi_test
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Build, test and lint
         env:
           TARGET: ${{ matrix.target }}
