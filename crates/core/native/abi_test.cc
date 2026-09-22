@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cinttypes>
+extern "C" {
+#include "InstructionRelocation/x86/x86_insn_decode/x86_insn_decode.h"
+}
 
 extern "C" int v8_killer_instrument(void *);
 extern "C" int v8_killer_instrument_module(void *);
@@ -61,6 +64,18 @@ static void print_entry(const char *name, const void *address) {
 
 int main() {
   std::setvbuf(stdout, nullptr, _IONBF, 0);
+  uint8_t instructions[16] = {0x48, 0x63, 0x44, 0x24, 0x48, 0x4c, 0x63, 0x54, 0x24, 0x40};
+  x86_options_t config = {};
+  config.mode = 64;
+  for (size_t offset = 0; offset < 10; offset += 5) {
+    x86_insn_decode_t decoded = {};
+    x86_insn_decode(&decoded, instructions + offset, &config);
+    std::printf("decoder offset=%zu length=%u rex=%02x opcode=%02x operands=%c%c,%c%c flags=%u\n",
+                offset, unsigned(decoded.length), unsigned(decoded.rex), unsigned(decoded.primary_opcode),
+                decoded.insn_spec.operands[0].code, decoded.insn_spec.operands[0].type,
+                decoded.insn_spec.operands[1].code, decoded.insn_spec.operands[1].type, unsigned(decoded.flags));
+    if (decoded.length != 5) return 8;
+  }
   uintptr_t source = 10;
   auto volatile internal = compile_internal;
   auto volatile public_compile = compile;
